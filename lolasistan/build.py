@@ -122,6 +122,9 @@ ARKETIP_OZEL = {
     "Graves": "adc_crit", "Kindred": "adc_crit", "Senna": "adc_crit", "Nilah": "adc_crit",
 }
 
+TASIYICI = {"adc_crit", "adc_onhit", "adc_spell", "ad_crit_melee", "ad_onhit_melee", "ad_lethality",
+            "ap_mage", "ap_burst", "ap_onhit", "support_mage"}
+
 # Bu eşyalar oyuna girmeden işe yarayan erken bileşenler
 ERKEN = {
     "Mortal Reminder": "Executioner's Calling", "Chempunk Chainsword": "Executioner's Calling",
@@ -185,16 +188,16 @@ def durum_kurallari(a, profil, rakip):
         alt = {"AD": ["Mortal Reminder"] if adc else ["Chempunk Chainsword", "Mortal Reminder"],
                "AP": ["Morellonomicon"], "TANK": ["Thornmail"], "DESTEK": []}[taraf]
         if alt:
-            k.append((90 + profil.iyilesme, alt, f"Anti-heal: {profil.iyilesme} şampiyon iyileşiyor"))
+            k.append((90 + profil.iyilesme, alt, f"Anti-heal: {profil.iyilesme} şampiyon iyileşiyor", "saldiri"))
     if profil.tank >= 2:
         alt = {"AD": ["Lord Dominik's Regards"] if adc else ["Serylda's Grudge", "Black Cleaver", "Lord Dominik's Regards"],
                "AP": ["Void Staff", "Liandry's Torment"], "TANK": [], "DESTEK": []}[taraf]
         if a in ("adc_onhit", "ad_onhit_melee"):
             alt = ["Blade of The Ruined King"]
         if alt:
-            k.append((80 + profil.tank, alt, f"Delme: karşıda {profil.tank} tank"))
+            k.append((80 + profil.tank, alt, f"Delme: karşıda {profil.tank} tank", "saldiri"))
     if profil.kalkan >= 3 and taraf == "AD":
-        k.append((60, ["Serpent's Fang"], "Bol kalkan var"))
+        k.append((60, ["Serpent's Fang"], "Bol kalkan var", "saldiri"))
 
     # ---- savunma ----
     if profil.sayi >= 2 and profil.ad_orani >= 0.65:
@@ -202,7 +205,7 @@ def durum_kurallari(a, profil, rakip):
                "AP": ["Zhonya's Hourglass"],
                "TANK": ["Frozen Heart", "Randuin's Omen", "Thornmail"],
                "DESTEK": ["Knight's Vow", "Locket of the Iron Solari"]}[taraf]
-        k.append((70 + int(profil.ad_orani * 10), alt, "Rakip ağırlıklı fiziksel hasar"))
+        k.append((70 + int(profil.ad_orani * 10), alt, "Rakip ağırlıklı fiziksel hasar", "savunma"))
         if not adc:
             bot = (["Plated Steelcaps"], "Rakip AD ağırlıklı → zırhlı bot")
     if profil.sayi >= 2 and profil.ap_orani >= 0.65:
@@ -210,23 +213,23 @@ def durum_kurallari(a, profil, rakip):
                "AP": ["Banshee's Veil"],
                "TANK": ["Force of Nature", "Kaenic Rookern", "Spirit Visage"],
                "DESTEK": ["Mikael's Blessing", "Locket of the Iron Solari"]}[taraf]
-        k.append((70 + int(profil.ap_orani * 10), alt, "Rakip ağırlıklı büyü hasarı"))
+        k.append((70 + int(profil.ap_orani * 10), alt, "Rakip ağırlıklı büyü hasarı", "savunma"))
         bot = (["Mercury's Treads"], "Rakip AP ağırlıklı → büyü dirençli bot")
     if profil.cc >= 4 or (profil.cc >= 3 and profil.ad_orani < 0.75):
         if bot is None or "Mercury" not in bot[0][0]:
             bot = (["Mercury's Treads"], f"Rakipte bol CC ({profil.cc}) → Merkür Botları (inat)")
         if adc:
-            k.append((65, ["Mercurial Scimitar", "Quicksilver Sash"], "Kitle kontrolünden arınma"))
+            k.append((65, ["Mercurial Scimitar", "Quicksilver Sash"], "Kitle kontrolünden arınma", "savunma"))
         elif taraf == "DESTEK":
-            k.append((65, ["Mikael's Blessing"], "Takım arkadaşını CC'den kurtar"))
+            k.append((65, ["Mikael's Blessing"], "Takım arkadaşını CC'den kurtar", "savunma"))
     if profil.suikastci >= 2:
         alt = {"AD": ["Guardian Angel", "Immortal Shieldbow"] if adc else ["Sterak's Gage", "Edge of Night", "Guardian Angel"],
                "AP": ["Zhonya's Hourglass", "Banshee's Veil"],
                "TANK": [], "DESTEK": ["Locket of the Iron Solari", "Redemption"]}[taraf]
         if alt:
-            k.append((68, alt, f"{profil.suikastci} suikastçıya karşı hayatta kalma"))
+            k.append((68, alt, f"{profil.suikastci} suikastçıya karşı hayatta kalma", "savunma"))
     if profil.nisanci >= 2 and taraf == "TANK":
-        k.append((62, ["Randuin's Omen", "Frozen Heart"], "Saldırı hızlı / kritik taşıyıcılar"))
+        k.append((62, ["Randuin's Omen", "Frozen Heart"], "Saldırı hızlı / kritik taşıyıcılar", "savunma"))
     return k, bot
 
 
@@ -275,10 +278,10 @@ def build_olustur(sampiyon, rol, profil, rakip, esya_db, rakipler=None) -> Build
     cekirdek = [x for x in (coz(s) for s in sab["cekirdek"]) if x]
     gec = [x for x in (coz(s) for s in sab["gec"]) if x]
     durum = []
-    for _, alt, neden in sorted(kurallar, key=lambda x: -x[0]):
+    for _, alt, neden, tur in sorted(kurallar, key=lambda x: -x[0]):
         r = coz(alt)
         if r:
-            durum.append((r, neden))
+            durum.append((r, neden, tur))
 
     secilen, adlar = [], set()
     maks = 6 if rol == "adc" else 5  # 2026'da ADC rol görevi ekstra eşya yuvası verir
@@ -288,20 +291,25 @@ def build_olustur(sampiyon, rol, profil, rakip, esya_db, rakipler=None) -> Build
             secilen.append((r[0], r[1], neden))
             adlar.add(r[1])
 
+    saldiri = [(r, n) for r, n, t in durum if t == "saldiri"]
+    savunma = [(r, n) for r, n, t in durum if t == "savunma"]
+    if a in TASIYICI:
+        # Hasar taşıyanlar önce çekirdek hasarı bitirir; savunma 4. eşyadan sonra
+        sira = saldiri[:1] + [(r, "Çekirdek") for r in cekirdek[2:]] + saldiri[1:] + savunma
+    else:
+        # Tank/dövüşçü: en önemli duruma özel eşya 3. sırada olabilir
+        hepsi = [(r, n) for r, n, _ in durum]
+        sira = hepsi[:1] + [(r, "Çekirdek") for r in cekirdek[2:]] + hepsi[1:]
     for r in cekirdek[:2]:
         ekle(r, "Çekirdek")
-    if durum:
-        ekle(*durum[0])
-    for r in cekirdek[2:]:
-        ekle(r, "Çekirdek")
-    for r, n in durum[1:]:
+    for r, n in sira:
         ekle(r, n)
     for r in gec:
         ekle(r, "Geç oyun")
     b.esyalar = secilen
 
     # Notlar
-    for r, neden in durum[:3]:
+    for r, neden, _ in durum[:3]:
         on = ERKEN.get(_ingilizce(r, esya_db))
         if on and esya_db.bul(on):
             b.notlar.append(f"{neden.split(':')[0]} için erken '{esya_db.bul(on)[1]}' al, sonra tamamla.")

@@ -33,7 +33,7 @@ Kurulum bitince masaüstünde **LoL Asistan** kısayolu oluşur. Bundan sonra sa
 - Şampiyonunu kilitleyince build, oyun içi mağazaya **eşya seti** olarak eklenir. Rün sayfası
   da istemcide **"LoL Asistan: Şampiyon"** adıyla oluşturulup seçilir. Senin kendi rün
   sayfalarına dokunmaz. İstersen **"Rünleri istemciye uygula"** düğmesiyle elle de uygulayabilirsin.
-- Maç sırasında uygulama bekler ve analiz yapmaz. Maç bitince sonuç ekranı açılır.
+- Maç sırasında uygulama, seçim ekranında hazırlanan planı (build, nedenleri, B planı, rünler) gösterir. Bu plan maç içinde değişmez; uygulama maç sırasında oyunu analiz etmez. Maç bitince sonuç ekranı açılır.
 
 ### Performansım sekmesi
 

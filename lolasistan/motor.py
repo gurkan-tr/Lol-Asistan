@@ -53,6 +53,7 @@ class Motor:
         self.gecmis = Gecmis()
         self.gecmis_durum = ""     # "Maç geçmişi okunuyor 12/40" gibi
         self._gecmis_calisiyor = False
+        self._son_secim = None     # seçim ekranında hazırlanan son plan (maç sırasında gösterilir)
         self._kilit = threading.Lock()
         self._surum = 0
         self._durum = {"ekran": "baglaniyor", "baslik": "Hazırlanıyor",
@@ -427,12 +428,14 @@ class Motor:
 
                 faz = lcu.faz()
                 # Maç sırasında hiçbir oyun verisi okunmaz, analiz yapılmaz.
+                # Sadece seçim ekranında hazırlanmış (değişmeyen) plan gösterilir.
                 if faz in ("GameStart", "InProgress", "Reconnect"):
                     if ekran != "oyun":
                         self._yayinla({"ekran": "oyun", "baslik": "Maç devam ediyor",
                                        "mesaj": "Riot kuralları gereği maç sırasında analiz yapmıyorum. "
                                                 "B planı mağazadaki eşya setinde: Tab'a bak, kararı sen ver. "
-                                                "Maç bitince ne daha iyi olabilirdi, burada göstereceğim."})
+                                                "Maç bitince ne daha iyi olabilirdi, burada göstereceğim.",
+                                       "hazirlik": self._son_secim})
                         ekran = "oyun"
                     son = None
                     time.sleep(5)
@@ -467,6 +470,7 @@ class Motor:
                     continue
 
                 if son is None:  # yeni seçim ekranı
+                    self._son_secim = None
                     ids = lcu.sahip_olunanlar()
                     sahip = {self.db.id_ile(i).alias for i in ids if self.db.id_ile(i)} if ids else None
                     ustalik = {self.db.id_ile(i).alias: p for i, p in lcu.ustaliklar().items() if self.db.id_ile(i)}
@@ -487,6 +491,7 @@ class Motor:
                     durum["rol_atanmadi"] = not d.rol
                     if benim:
                         son_build, son_rol = build, rol
+                        self._son_secim = {k: durum.get(k) for k in ("build", "plan", "rakipler", "rol_ad", "benim")}
                     # Kilitledikten sonra (rakip yeni seçim yaptıkça güncellenir)
                     anahtar_set = (benim.alias, len(d.rakip_ids)) if benim else None
                     if benim and d.kilitli and build and anahtar_set not in aktarilan:

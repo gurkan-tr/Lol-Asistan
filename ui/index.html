@@ -243,6 +243,13 @@ footer{font-size:11px;color:#5C7380;padding:5px 22px;border-top:1px solid var(--
 .son .portre{margin-bottom:4px}
 .son.k .portre{border-color:var(--yesil)}.son.y .portre{border-color:var(--kirmizi)}
 .bos-kart{font-size:13px;color:var(--soluk)}
+
+/* --- maç içi (seçim ekranında hazırlanan plan) --- */
+.oyun{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.oyun-ust{display:flex;align-items:center;gap:18px}
+.oyun-ust h1{font-family:var(--baslik);font-stretch:87.5%;font-size:32px;font-weight:600;line-height:1.1}
+.oyun-ust p{font-size:13px;color:var(--soluk);max-width:640px}
+.canli-nokta{width:10px;height:10px;border-radius:50%;background:var(--yesil);box-shadow:0 0 0 4px #62c48e33;flex:none}
 @media (max-width:1080px){.perf-izgara{grid-template-columns:1fr}}
 @media (max-width:1080px){.masa{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
@@ -263,7 +270,7 @@ footer{font-size:11px;color:#5C7380;padding:5px 22px;border-top:1px solid var(--
     <button class="dugme" id="ayar-dugme">Ayarlar</button>
   </header>
   <main id="icerik"></main>
-  <footer>LoL Asistan, Riot Games tarafından onaylanmamıştır. Maç sırasında analiz yapmaz; yalnızca seçim ekranında ve maç sonunda çalışır.</footer>
+  <footer>LoL Asistan, Riot Games tarafından onaylanmamıştır. Maç sırasında analiz yapmaz; yalnızca seçim ekranında hazırladığı planı gösterir.</footer>
 </div>
 
 <!-- elle giriş -->
@@ -331,7 +338,7 @@ function kare(e){
   const img=e.ikon?`<img src="${esc(e.ikon)}" alt="" onerror="this.remove()">`:"";
   return `<div class="kare" title="${esc(e.ad)}">${esc(e.ad)}${img}</div>`;
 }
-function runHtml(r,alias,buyu){
+function runHtml(r,alias,buyu,oyunda){
   if(!r) return "";
   const bagli=durum&&durum.baglanti;
   const engel=!r.uygulanabilir?"Rün verisi indirilemedi":!bagli?"Uygulamak için LoL istemcisi açık olmalı":"";
@@ -340,7 +347,7 @@ function runHtml(r,alias,buyu){
       <div class="buyu">${kare(bu.d)}<span class="tus">D</span></div><div class="buyu">${kare(bu.f)}<span class="tus">F</span></div></div>
       <div class="buyu-neden">${esc(bu.neden)}</div></div>`:"";
   return `<div class="runler"><div class="run-ust"><h4>Rünler ve büyüler</h4>
-    <button class="dugme ana" ${engel?`disabled title="${esc(engel)}"`:""} onclick="runUygula('${esc(alias)}')">Rünleri ve büyüleri uygula</button></div>
+    ${oyunda?"":`<button class="dugme ana" ${engel?`disabled title="${esc(engel)}"`:""} onclick="runUygula('${esc(alias)}')">Rünleri ve büyüleri uygula</button>`}</div>
     <div class="run-govde">${by(buyu)}
       <div class="agac"><div class="agac-ad">${rimg(r.ana,20)}${esc(r.ana.ad)}</div>
         <div class="agac-satir">${rimg(r.kilit,62,true)}<div class="run-liste">
@@ -419,7 +426,7 @@ function planHtml(p){
   if(!p||!p.length) return "";
   return `<section class="plan"><h3>Maç planı</h3>${p.map(x=>`<div class="plan-satir ${x.tur}"><span class="tur">${PLAN_TUR[x.tur]||""}</span><span>${esc(x.m)}</span></div>`).join("")}</section>`;
 }
-function buildHtml(b){
+function buildHtml(b,oyunda){
   if(!b) return "";
   const bas=`<div class="durak bas"><div class="no">Başla</div><div class="grup">${b.baslangic.map(e=>esya(e,40)).join("")}</div>
     <div class="ead">${b.baslangic.map(e=>esc(e.ad)+(e.adet>1?" ×"+e.adet:"")).join(", ")}</div></div>`;
@@ -431,9 +438,17 @@ function buildHtml(b){
     b.b_plani.map(k=>`<div class="kosul"><span class="k">${esc(k.kosul)}</span>${esya(k,36)}<span class="e">${esc(k.ad)}</span></div>`).join("")}</div>`:"";
   const ipucu=b.notlar.length?`<ul class="ipuclari">${b.notlar.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:"";
   return `<section class="build"><div class="build-ust"><h3>${esc(b.hedef.ad)} buildi</h3><span>${esc(b.arketip)} · altın çerçeveliler bu maça özel</span></div>
-    <div class="rota">${bas}<div class="ayrac"></div>${bot}${sira}</div>${runHtml(b.runler,b.hedef.alias,b.buyu)}${plan}${ipucu}</section>`;
+    <div class="rota">${bas}<div class="ayrac"></div>${bot}${sira}</div>${runHtml(b.runler,b.hedef.alias,b.buyu,oyunda)}${plan}${ipucu}</section>`;
 }
 
+function oyunEkrani(d){
+  const h=d.hazirlik;
+  if(!h||!h.build) return bosEkran(d);
+  return `<div class="oyun"><div class="oyun-ust"><span class="canli-nokta"></span><div>
+      <h1>Maç devam ediyor · ${esc(h.benim?h.benim.ad:h.build.hedef.ad)}</h1>
+      <p>Bu plan seçim ekranında hazırlandı ve maç sırasında değişmez. B planındaki koşullar için Tab'a bak, kararı sen ver.</p></div></div>
+    ${buildHtml(h.build,true)}${planHtml(h.plan)}</div>`;
+}
 function macSonu(d){
   const sonuc=d.kazandi===true?`<span class="sonuc k">Kazandın</span>`:d.kazandi===false?`<span class="sonuc y">Kaybettin</span>`:"";
   const s={iyi:"✓",uyari:"!",bilgi:"i"};
@@ -506,7 +521,7 @@ function ciz(d,zorla){
   }
   const el=$("#icerik");
   if(d.ekran!=="secim"){secilenAlt=null;oncekiRakipler=new Set()}
-  el.innerHTML=d.ekran==="secim"?secimEkrani(d):d.ekran==="macsonu"?macSonu(d):bosEkran(d);
+  el.innerHTML=d.ekran==="secim"?secimEkrani(d):d.ekran==="macsonu"?macSonu(d):d.ekran==="oyun"?oyunEkrani(d):bosEkran(d);
 }
 
 /* ---------- etkileşim ---------- */
