@@ -256,6 +256,7 @@ footer{font-size:11px;color:#5C7380;padding:5px 22px;border-top:1px solid var(--
     <div class="baglanti"><span class="nokta" id="nokta"></span><span id="baglanti-yazi">Bağlanıyor…</span></div>
     <span id="kaynak"></span>
     <div class="bosluk"></div>
+    <button class="dugme ana" id="guncelle-dugme" hidden></button>
     <button class="dugme" id="canli-dugme" hidden>Canlı maça dön</button>
     <button class="dugme" id="elle-dugme">Takımları elle gir</button>
     <button class="dugme" id="gecmis-dugme">Maç analizleri klasörü</button>
@@ -291,6 +292,11 @@ footer{font-size:11px;color:#5C7380;padding:5px 22px;border-top:1px solid var(--
     <label class="onay"><input type="checkbox" id="ayar-buyu"> Şampiyonu kilitleyince sihirdar büyülerini otomatik ayarla</label>
     <label class="onay"><input type="checkbox" id="ayar-run"> Şampiyonu kilitleyince rün sayfasını otomatik oluştur</label>
     <div class="alan"><label for="ayar-klasor">Oyun klasörü (bulunamazsa doldur)</label><input type="text" id="ayar-klasor" placeholder="C:\Riot Games\League of Legends"></div>
+    <h2 style="font-size:20px;margin-top:22px">Güncelleme</h2>
+    <div class="alt-yazi" id="ayar-surum">Sürüm bilgisi alınıyor…</div>
+    <div class="alan"><label for="ayar-depo">GitHub deposu</label><input type="text" id="ayar-depo" placeholder="kullaniciadi/Lol-Asistan"></div>
+    <div class="alan"><label for="ayar-anahtar">GitHub anahtarı (sadece bu bilgisayarda saklanır)</label><input type="text" id="ayar-anahtar" placeholder="github_pat_..." autocomplete="off" style="-webkit-text-security:disc"></div>
+    <button class="dugme" id="ayar-kontrol" type="button">Kaydet ve güncellemeleri kontrol et</button>
     <div class="alt-dugmeler"><button class="dugme" data-kapat>Vazgeç</button><button class="dugme ana" id="ayar-kaydet">Kaydet</button></div>
   </div>
 </div>
@@ -535,13 +541,31 @@ async function ayarAc(){
   $("#havuz-alanlari").innerHTML=ROLLER.map(([k,ad])=>`<div style="display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:center;margin-bottom:6px">
      <span style="font-size:13px">${ad}</span><input type="text" data-havuz="${k}" list="adlar" value="${esc((a.havuz&&a.havuz[k]||[]).join(", "))}"></div>`).join("");
   $("#ayar-sadece").checked=!!a.sadece_havuz;$("#ayar-run").checked=a.run_aktar!==false;$("#ayar-buyu").checked=a.buyu_aktar!==false;$("#ayar-itemset").checked=a.item_set_aktar!==false;
-  $("#ayar-klasor").value=a.lol_klasoru||"";perdeAc("#ayar-perde");
+  $("#ayar-klasor").value=a.lol_klasoru||"";
+  $("#ayar-depo").value=a.github_depo||"";$("#ayar-anahtar").value=a.github_anahtar||"";
+  perdeAc("#ayar-perde");guncellemeBak(true);
+}
+async function ayarKaydetSessiz(){
+  await api.ayar_kaydet({github_depo:$("#ayar-depo").value.trim(),github_anahtar:$("#ayar-anahtar").value.trim()});
 }
 async function ayarKaydet(){
   const havuz={};document.querySelectorAll("[data-havuz]").forEach(i=>havuz[i.dataset.havuz]=i.value.split(",").map(s=>s.trim()).filter(Boolean));
   await api.ayar_kaydet({varsayilan_rol:seciliRol($("#ayar-rol")),havuz,sadece_havuz:$("#ayar-sadece").checked,
-    item_set_aktar:$("#ayar-itemset").checked,run_aktar:$("#ayar-run").checked,buyu_aktar:$("#ayar-buyu").checked,lol_klasoru:$("#ayar-klasor").value.trim()});
-  perdeKapat();
+    item_set_aktar:$("#ayar-itemset").checked,run_aktar:$("#ayar-run").checked,buyu_aktar:$("#ayar-buyu").checked,lol_klasoru:$("#ayar-klasor").value.trim(),
+    github_depo:$("#ayar-depo").value.trim(),github_anahtar:$("#ayar-anahtar").value.trim()});
+  perdeKapat();guncellemeBak();
+}
+async function guncellemeBak(ayarlarda){
+  try{
+    const g=await api.guncelleme_kontrol();
+    if(ayarlarda||$("#ayar-perde").classList.contains("acik")) $("#ayar-surum").textContent=`Şu anki sürüm: ${g.yerel}. ${g.mesaj}`;
+    const b=$("#guncelle-dugme");b.hidden=!g.var;b.textContent=`Güncelle (${g.uzak})`;
+  }catch(e){}
+}
+async function guncelleKur(){
+  const b=$("#guncelle-dugme");b.disabled=true;b.textContent="İndiriliyor…";
+  const r=await api.guncelle_kur();bildir(r.mesaj,!r.ok);
+  if(r.ok) setTimeout(()=>api.yeniden_baslat(),1500); else{b.disabled=false;b.textContent="Tekrar dene"}
 }
 async function yokla(){
   try{const d=await api.durum();if(d&&d.surum!==sonSurum){sonSurum=d.surum;ciz(d)}else if(d&&sonSurum===-1){ciz(d)}}catch(e){}
@@ -556,7 +580,10 @@ function basla(a){
   document.querySelectorAll(".sekme").forEach(b=>b.onclick=()=>sekmeSec(b.dataset.sekme));
   $("#elle-dugme").onclick=()=>{sekmeSec("secim");elleAc()};$("#ayar-dugme").onclick=ayarAc;$("#gecmis-dugme").onclick=()=>api.gecmis_ac();
   $("#canli-dugme").onclick=async()=>{await api.canliya_don();yokla()};
-  $("#elle-gonder").onclick=elleGonder;$("#ayar-kaydet").onclick=ayarKaydet;
+  $("#elle-gonder").onclick=elleGonder;
+  $("#guncelle-dugme").onclick=guncelleKur;
+  $("#ayar-kontrol").onclick=async()=>{await ayarKaydetSessiz();$("#ayar-surum").textContent="Kontrol ediliyor…";guncellemeBak(true)};
+  setTimeout(guncellemeBak,4000);setInterval(guncellemeBak,6*3600*1000);$("#ayar-kaydet").onclick=ayarKaydet;
   document.querySelectorAll("[data-kapat]").forEach(b=>b.onclick=perdeKapat);
   document.querySelectorAll(".perde").forEach(p=>p.addEventListener("click",e=>{if(e.target===p)perdeKapat()}));
   document.addEventListener("keydown",e=>{if(e.key==="Escape")perdeKapat();if(e.key==="Enter"&&$("#elle-perde").classList.contains("acik"))elleGonder()});

@@ -314,3 +314,38 @@ class YeniOzellikTest(unittest.TestCase):
         iyi = sampiyon_oner(self.db, "mid", rr, [], rak, adet=200, kisisel={"Annie": Sayac(mac=20, galibiyet=15)})
         sira = lambda l: [o.sampiyon.alias for o in l].index("Annie")
         self.assertLess(sira(iyi), sira(normal))
+
+
+class GuncellemeTest(unittest.TestCase):
+    def test_kurulum_kisisel_dosyalara_dokunmaz(self):
+        import io, tempfile, zipfile
+        from unittest import mock
+        from lolasistan import guncelle
+        with tempfile.TemporaryDirectory() as kok:
+            for yol, icerik in {"config.json": "BENIM AYARIM", "kisisel/gecmis_x.json": "{}",
+                                "surum.txt": "1.4.0", "main.py": "eski"}.items():
+                os.makedirs(os.path.dirname(os.path.join(kok, yol)) or kok, exist_ok=True)
+                open(os.path.join(kok, yol), "w").write(icerik)
+            tampon = io.BytesIO()
+            with zipfile.ZipFile(tampon, "w") as z:
+                z.writestr("gurkan-tr-Lol-Asistan-abc123/surum.txt", "1.5.0")
+                z.writestr("gurkan-tr-Lol-Asistan-abc123/main.py", "yeni")
+                z.writestr("gurkan-tr-Lol-Asistan-abc123/config.json", "EZME")
+                z.writestr("gurkan-tr-Lol-Asistan-abc123/ui/yeni.html", "<p>")
+                z.writestr("gurkan-tr-Lol-Asistan-abc123/../../kotu.txt", "x")
+            cevap = mock.Mock(status_code=200, content=tampon.getvalue(), text="1.5.0")
+            with mock.patch.object(guncelle, "KOK", kok), mock.patch.object(guncelle, "PAKET", kok), \
+                    mock.patch("requests.get", return_value=cevap), mock.patch("subprocess.run"):
+                self.assertTrue(guncelle.kontrol("u/d", "t")["var"])
+                self.assertEqual(guncelle.indir_ve_kur("u/d", "t"), "1.5.0")
+            oku = lambda y: open(os.path.join(kok, y)).read()
+            self.assertEqual(oku("main.py"), "yeni")
+            self.assertEqual(oku("config.json"), "BENIM AYARIM")
+            self.assertTrue(os.path.exists(os.path.join(kok, "kisisel/gecmis_x.json")))
+            self.assertTrue(os.path.exists(os.path.join(kok, "ui/yeni.html")))
+            self.assertFalse(os.path.exists(os.path.join(os.path.dirname(kok), "kotu.txt")))
+
+    def test_surum_karsilastirma(self):
+        from lolasistan.guncelle import _sayi
+        self.assertGreater(_sayi("1.10.0"), _sayi("1.9.3"))
+        self.assertGreater(_sayi("v2.0"), _sayi("1.99.99"))

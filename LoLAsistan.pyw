@@ -43,6 +43,18 @@ class Api:
     def gecmisi_yenile(self):
         return self._m.gecmisi_yenile()
 
+    def guncelleme_kontrol(self):
+        return self._m.guncelleme_kontrol()
+
+    def guncelle_kur(self):
+        return self._m.guncelle_kur()
+
+    def yeniden_baslat(self):
+        from lolasistan.guncelle import yeniden_baslat
+        yeniden_baslat()
+        for w in list(webview.windows):
+            w.destroy()
+
     def sampiyon_adlari(self):
         return self._m.sampiyon_adlari()
 

@@ -22,6 +22,7 @@ VARSAYILAN_AYAR = {
     "havuz": {r: [] for r in ROLLER}, "sadece_havuz": False,
     "oneri_sayisi": 5, "secince_de_oner": True, "item_set_aktar": True, "run_aktar": True,
     "buyu_aktar": True,
+    "github_depo": "gurkan-tr/Lol-Asistan", "github_anahtar": "",
     "lol_klasoru": "",
 }
 
@@ -262,6 +263,31 @@ class Motor:
         """'Rünleri ve büyüleri uygula' düğmesi."""
         r, b = self.runleri_uygula(alias), self.buyuleri_uygula(alias)
         return {"ok": r["ok"] and b["ok"], "mesaj": r["mesaj"] + " " + b["mesaj"]}
+
+    # ---------------- güncelleme ----------------
+    def guncelleme_kontrol(self):
+        from . import guncelle
+        anahtar = (self.ayar.get("github_anahtar") or "").strip()
+        sonuc = {"var": False, "yerel": guncelle.yerel_surum(), "uzak": None, "mesaj": ""}
+        if not anahtar:
+            sonuc["mesaj"] = "Otomatik güncelleme için Ayarlar'a GitHub anahtarını gir."
+            return sonuc
+        try:
+            sonuc.update(guncelle.kontrol(self.ayar.get("github_depo", ""), anahtar))
+            if not sonuc.get("mesaj"):
+                sonuc["mesaj"] = (f"Yeni sürüm var: {sonuc['uzak']}" if sonuc["var"]
+                                  else f"Güncelsin (sürüm {sonuc['yerel']}).")
+        except Exception as e:
+            sonuc["mesaj"] = f"Güncelleme kontrol edilemedi: {e}"
+        return sonuc
+
+    def guncelle_kur(self):
+        from . import guncelle
+        try:
+            yeni = guncelle.indir_ve_kur(self.ayar.get("github_depo", ""), self.ayar.get("github_anahtar", "").strip())
+            return {"ok": True, "mesaj": f"Sürüm {yeni} kuruldu. Uygulama yeniden başlatılıyor…"}
+        except Exception as e:
+            return {"ok": False, "mesaj": f"Güncelleme kurulamadı: {e}"}
 
     # ---------------- performans sayfası ----------------
     def performans(self):
