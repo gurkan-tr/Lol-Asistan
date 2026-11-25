@@ -108,3 +108,29 @@ def mac_plani(rol, benim, takim, rakipler, rakip, kisisel_koridor=None):
         if s and s.mac >= 2:
             satirlar.append(("kisisel", f"{rakip.ad} karşısında {s.mac} maçta %{round(s.oran * 100)} kazandın."))
     return satirlar
+
+
+KISA = [
+    ("Rakip erken oyunda daha güçlü", "Rakip erken güçlü: ilk 15 dk sakin oynayalım, objektifleri avantajlıyken alalım."),
+    ("Takımın erken oyunda daha güçlü", "Erken güçlüyüz: baskı kuralım, ilk ejderha ve Vadi Gözcüsü'nü alalım."),
+    ("Takımın geç oyunda", "Geç oyun bizim: erken kavgaya girmeyelim, 2-3 eşyadan sonra savaşalım."),
+    ("Rakip uzaktan dürtme", "Rakip poke takımı: beklemeyelim, hızlı engage yapalım."),
+    ("Rakip taşıyıcılarınıza dalacak", "Rakip dalış yapacak: savaşlarda ADC'nin yanında kalalım."),
+    ("Rakibin engage'i", "Rakibin engage'i güçlü: dar alanda savaşmayalım, karşılık verelim."),
+]
+
+
+def takim_mesaji(satirlar):
+    """Maç planının takım sohbetine yapıştırılacak kısa hali (koridor ve kişisel satırlar hariç)."""
+    parcalar = []
+    for tur, m in satirlar:
+        if tur not in ("zaman", "savas"):
+            continue
+        for bas, kisa in KISA:
+            if m.startswith(bas):
+                parcalar.append(kisa)
+                break
+        else:
+            if "split push" in m:
+                parcalar.append(f"{m.split(' yan koridorda')[0]} split itsin, biz 4'lü baskı kuralım.")
+    return " ".join(parcalar)

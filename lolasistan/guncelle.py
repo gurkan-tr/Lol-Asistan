@@ -97,4 +97,4 @@ def _python():
 
 def yeniden_baslat():
     gizli = 0x08000000 if sys.platform == "win32" else 0
-    subprocess.Popen([sys.executable, os.path.join(KOK, "LoLAsistan.pyw")], cwd=KOK, creationflags=gizli)
+    subprocess.Popen([sys.executable, os.path.join(KOK, "LoLAsistan.pyw"), "--bekle"], cwd=KOK, creationflags=gizli)

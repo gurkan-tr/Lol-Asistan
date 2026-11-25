@@ -17,9 +17,9 @@ Kurulum bitince masaüstünde **LoL Asistan** kısayolu oluşur. Bundan sonra sa
 
 - Uygulamayı aç, sonra LoL'ü aç (sıra fark etmez). Uygulama istemciye kendisi bağlanır.
 - Seçim ekranı açılınca her şey otomatik gelir:
-  - **Solda** karşı takım, koridorlarıyla birlikte. Senin rakibin altın renkle işaretli.
+  - **Solda** karşı takım, koridorlarıyla birlikte. Senin rakibin nane yeşiliyle işaretli.
   - **Ortada** sana önerilen şampiyon ve nedenleri. Diğer seçeneklere tıklayınca onların buildi görünür.
-  - **Altta** build sırası. Altın çerçeveli eşyalar bu maça özel seçildi. Altındaki **B planı**, maçta Tab'a bakıp karar vermen için hazırlandı.
+  - **Altta** build sırası. Turuncu çerçeveli eşyalar bu maça özel seçildi. Altındaki **B planı**, maçta Tab'a bakıp karar vermen için hazırlandı.
 - **Rünler**: Build'in altında, rakiplere göre ayarlanmış bir rün sayfası var. Örneğin:
   - patlama hasarlı bir koridor rakibine karşı Kemik Kaplama
   - uzaktan dürten bir rakibe karşı İkinci Rüzgar
@@ -34,6 +34,25 @@ Kurulum bitince masaüstünde **LoL Asistan** kısayolu oluşur. Bundan sonra sa
   da istemcide **"LoL Asistan: Şampiyon"** adıyla oluşturulup seçilir. Senin kendi rün
   sayfalarına dokunmaz. İstersen **"Rünleri istemciye uygula"** düğmesiyle elle de uygulayabilirsin.
 - Maç sırasında uygulama, seçim ekranında hazırlanan planı (build, nedenleri, B planı, rünler) gösterir. Bu plan maç içinde değişmez; uygulama maç sırasında oyunu analiz etmez. Maç bitince sonuç ekranı açılır.
+
+### Arka planda çalışma
+
+Pencereyi kapatınca uygulama kapanmaz, saatin yanındaki simgeye küçülür. Maç bulununca
+bildirim gönderir ve pencereyi öne getirir. Tamamen kapatmak için simgeye sağ tıkla ve
+**Çıkış**'ı seç. Ayarlar'dan **Windows açılınca başlat** seçeneğini açarsan bilgisayar açılınca
+simge durumunda kendiliğinden başlar.
+
+### Takıma kopyala
+
+Maç planı kartındaki **Takıma kopyala** düğmesi planın kısa halini panoya kopyalar, sen de
+seçim ekranı sohbetine Ctrl+V ile yapıştırırsın. Örnek: "Rakip erken güçlü: ilk 15 dk sakin
+oynayalım, objektifleri avantajlıyken alalım."
+
+### Ölüm haritası
+
+Maç bitince maçın zaman çizelgesine bakılır ve her ölümün dakikası, yeri ve seni kimin
+öldürdüğü küçük bir haritada gösterilir. Altında öneriler çıkar, örneğin "İlk 14 dakikada 3 kez
+öldün" ya da "Ölümlerinin çoğu nehirde, görüşsüz girme".
 
 ### Performansım sekmesi
 

@@ -69,13 +69,66 @@ class Api:
     def gecmis_ac(self):
         return self._m.gecmis_ac()
 
+    def oto_baslat_durumu(self):
+        from lolasistan.tepsi import oto_baslat_durumu
+        return oto_baslat_durumu()
+
+    def oto_baslat(self, acik):
+        from lolasistan.tepsi import oto_baslat_ayarla
+        return oto_baslat_ayarla(bool(acik))
+
 
 def main():
+    from lolasistan.tepsi import Tepsi, tek_kopya
+    gizli = "--gizli" in sys.argv            # Windows açılışında simge durumunda başla
+    durum = {"pencere": None, "cikis": False, "uyarildi": False}
+
+    def goster():
+        w = durum["pencere"]
+        if w:
+            w.show()
+            w.restore()
+
+    if not tek_kopya(goster, bekle="--bekle" in sys.argv):
+        return  # zaten açık: onun penceresi öne getirildi
+
     motor = Motor()
-    webview.create_window(
+
+    def cikis():
+        durum["cikis"] = True
+        tepsi.durdur()
+        if durum["pencere"]:
+            durum["pencere"].destroy()
+
+    tepsi = Tepsi(goster, cikis)
+    tepsi_var = tepsi.baslat()
+
+    def olay(tur, baslik, mesaj):
+        """Motorun bildirimleri: yeni seçim ekranı vb."""
+        tepsi.bildir(baslik, mesaj)
+        if tur == "secim" and motor.ayar.get("secimde_one_getir", True):
+            goster()
+
+    motor.olay = olay
+
+    def kapaniyor():
+        # Kapat düğmesi: simge durumuna küçül (Çıkış tepsi menüsünden)
+        if tepsi_var and not durum["cikis"] and motor.ayar.get("kapatinca_simgeye", True):
+            durum["pencere"].hide()
+            if not durum["uyarildi"]:
+                tepsi.bildir("LoL Asistan arka planda çalışıyor",
+                             "Maç bulununca haber vereceğim. Tamamen kapatmak için simgeye sağ tıkla → Çıkış.")
+                durum["uyarildi"] = True
+            return False
+        tepsi.durdur()
+        return True
+
+    w = webview.create_window(
         "LoL Asistan", os.path.join(PAKET, "ui", "index.html"), js_api=Api(motor),
-        width=1240, height=860, min_size=(1000, 680), background_color="#0E1820",
+        width=1260, height=880, min_size=(1000, 680), background_color="#171B27", hidden=gizli,
     )
+    w.events.closing += kapaniyor
+    durum["pencere"] = w
     webview.start(motor.baslat)
 
 

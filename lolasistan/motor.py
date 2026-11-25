@@ -13,7 +13,7 @@ from .champs import KOK, ROL_AD, ROLLER, SINIF_AD, SampiyonDB, rol_coz
 from .buyuler import BUYU, SICRA, buyu_oner
 from .gecmis import Gecmis, sik_hatalar
 from .oneri import sampiyon_oner
-from .plan import ban_oner, mac_plani
+from .plan import ban_oner, mac_plani, takim_mesaji
 from .veri import DD, DataDragon, EsyaDB
 
 AYAR_YOLU = os.path.join(KOK, "config.json")
@@ -23,6 +23,7 @@ VARSAYILAN_AYAR = {
     "oneri_sayisi": 5, "secince_de_oner": True, "item_set_aktar": True, "run_aktar": True,
     "buyu_aktar": True,
     "github_depo": "gurkan-tr/Lol-Asistan", "github_anahtar": "",
+    "kapatinca_simgeye": True, "secimde_one_getir": True,
     "lol_klasoru": "",
 }
 
@@ -54,6 +55,8 @@ class Motor:
         self.gecmis_durum = ""     # "Maç geçmişi okunuyor 12/40" gibi
         self._gecmis_calisiyor = False
         self._son_secim = None     # seçim ekranında hazırlanan son plan (maç sırasında gösterilir)
+        self._macsonu = None
+        self.olay = None           # arayüz katmanının bildirim fonksiyonu (tur, başlık, mesaj)
         self._kilit = threading.Lock()
         self._surum = 0
         self._durum = {"ekran": "baglaniyor", "baslik": "Hazırlanıyor",
@@ -215,6 +218,7 @@ class Motor:
                          for o in oneriler],
             "build": self._build_json(hedef, build, sayfa, buyu),
             "plan": [{"tur": t, "m": m} for t, m in plan],
+            "takim_mesaji": takim_mesaji(plan),
             "ban_asamasi": ban_asamasi,
             "banlar": [dict(self._s(b.sampiyon), nedenler=b.nedenler[:2]) for b in banlar],
         }
@@ -264,6 +268,45 @@ class Motor:
         """'Rünleri ve büyüleri uygula' düğmesi."""
         r, b = self.runleri_uygula(alias), self.buyuleri_uygula(alias)
         return {"ok": r["ok"] and b["ok"], "mesaj": r["mesaj"] + " " + b["mesaj"]}
+
+    # ---------------- ölüm analizi (maç sonrası) ----------------
+    def _olum_analizi(self, lcu, mac, dosya):
+        from .mac_sonu import kaydet
+        from .olum import BOLGE_AD, HARITA, olumleri_cikar, yorumla
+        sonuc = None
+        for _ in range(8):   # maç, geçmişe birkaç saniye/dakika gecikmeyle düşebiliyor
+            try:
+                puuid = (lcu.get("/lol-summoner/v1/current-summoner") or {}).get("puuid")
+                oyun = lcu.get(f"/lol-match-history/v1/games/{mac.oyun_id}")
+                zc = lcu.get(f"/lol-match-history/v1/game-timelines/{mac.oyun_id}")
+                if oyun and zc:
+                    sonuc = olumleri_cikar(oyun, zc, puuid)
+                    if sonuc:
+                        break
+            except Exception:
+                pass
+            time.sleep(15)
+        d = dict(self._macsonu or {})
+        if not sonuc:
+            d["olum"] = {"durum": "yok"}
+        else:
+            ad = lambda cid: (self.db.id_ile(cid).ad if self.db.id_ile(cid) else "Bir rakip")
+            notlar = yorumla(sonuc, ad)
+            d["olum"] = {
+                "durum": "hazir", "takim": sonuc["takim"],
+                "olumler": [{"dk": o["dk"], "x": round(o["x"] / HARITA, 3), "y": round(o["y"] / HARITA, 3),
+                             "bolge": BOLGE_AD[o["bolge"]], "katil": self._s(self.db.id_ile(o["katil"]))}
+                            for o in sonuc["olumler"]],
+                "notlar": [{"tur": t, "m": m} for t, m in notlar],
+            }
+            mac.analiz += notlar
+            try:
+                kaydet(mac, dosya)
+            except Exception:
+                pass
+        self._macsonu = d
+        if self.durum().get("ekran") == "macsonu" or self._canli.get("ekran") == "macsonu":
+            self._yayinla(d)
 
     # ---------------- güncelleme ----------------
     def guncelleme_kontrol(self):
@@ -449,10 +492,13 @@ class Motor:
                         except Exception:
                             dosya = None
                         ben = next(o for o in mac.oyuncular if o.ben)
-                        self._yayinla({"ekran": "macsonu", "ozet": mac.ozet, "kazandi": ben.kazandi,
-                                       "sampiyon": self._s(self.db.id_ile(ben.champ_id)),
-                                       "kda": f"{ben.k} / {ben.d} / {ben.a}",
-                                       "analiz": [{"tur": t, "m": m} for t, m in mac.analiz], "dosya": dosya})
+                        self._macsonu = {"ekran": "macsonu", "ozet": mac.ozet, "kazandi": ben.kazandi,
+                                         "sampiyon": self._s(self.db.id_ile(ben.champ_id)),
+                                         "kda": f"{ben.k} / {ben.d} / {ben.a}",
+                                         "analiz": [{"tur": t, "m": m} for t, m in mac.analiz], "dosya": dosya,
+                                         "olum": {"durum": "bekliyor"}}
+                        self._yayinla(self._macsonu)
+                        threading.Thread(target=self._olum_analizi, args=(lcu, mac, dosya), daemon=True).start()
                         analiz_edilen, ekran = mac.oyun_id, "macsonu"
                         self.gecmisi_yenile()
                     time.sleep(3)
@@ -476,6 +522,11 @@ class Motor:
                     ustalik = {self.db.id_ile(i).alias: p for i, p in lcu.ustaliklar().items() if self.db.id_ile(i)}
                     aktarilan = set()
                     self.elle = False   # gerçek seçim başlayınca demo ekranını kapat
+                    if self.olay:
+                        try:
+                            self.olay("secim", "Maç bulundu!", "Karşı takım analizi ve ban önerin hazır.")
+                        except Exception:
+                            pass
 
                 d = secim_oku(oturum)
                 self._sicra_d = d.sicra_d

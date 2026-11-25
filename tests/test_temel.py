@@ -2,6 +2,7 @@
 import os
 import sys
 import unittest
+import unittest.mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -349,3 +350,51 @@ class GuncellemeTest(unittest.TestCase):
         from lolasistan.guncelle import _sayi
         self.assertGreater(_sayi("1.10.0"), _sayi("1.9.3"))
         self.assertGreater(_sayi("v2.0"), _sayi("1.99.99"))
+
+
+class SurumBesTest(unittest.TestCase):
+    def test_bolgeler(self):
+        from lolasistan.olum import bolge
+        self.assertEqual(bolge(1000, 1000, 100), "kendi_us")
+        self.assertEqual(bolge(13800, 13800, 100), "rakip_us")
+        self.assertEqual(bolge(1200, 9000, 100), "ust_koridor")
+        self.assertEqual(bolge(9000, 1000, 100), "alt_koridor")
+        self.assertEqual(bolge(7400, 7400, 100), "orta_koridor")
+        self.assertEqual(bolge(4600, 10200, 100), "nehir")
+        self.assertEqual(bolge(9500, 11500, 100), "rakip_orman")
+        self.assertEqual(bolge(9500, 11500, 200), "kendi_orman")
+
+    def test_olum_cikar_ve_yorum(self):
+        from lolasistan.olum import olumleri_cikar, yorumla
+        oyun = {"participantIdentities": [{"participantId": 3, "player": {"puuid": "ben"}}],
+                "participants": [{"participantId": 3, "teamId": 100, "championId": 103},
+                                 {"participantId": 7, "teamId": 200, "championId": 238}]}
+        olay = lambda dk, x, y, yardim=(): {"type": "CHAMPION_KILL", "victimId": 3, "killerId": 7,
+                                             "timestamp": dk * 60000, "position": {"x": x, "y": y},
+                                             "assistingParticipantIds": list(yardim)}
+        zc = {"frames": [{"events": [olay(4, 4600, 10200), olay(9, 9500, 11500), olay(12, 7400, 7400),
+                                     {"type": "CHAMPION_KILL", "victimId": 7, "killerId": 3, "timestamp": 1}]}]}
+        s = olumleri_cikar(oyun, zc, "ben")
+        self.assertEqual([o["dk"] for o in s["olumler"]], [4, 9, 12])
+        metin = " ".join(m for _, m in yorumla(s, lambda c: {238: "Zed"}[c]))
+        self.assertIn("İlk 14 dakikada 3 kez", metin)
+        self.assertIn("nehirde ya da rakip ormanında", metin)
+        self.assertIn("Zed seni 3 kez", metin)
+
+    def test_takim_mesaji(self):
+        from lolasistan.plan import takim_mesaji
+        m = takim_mesaji([("zaman", "Rakip erken oyunda daha güçlü. ..."), ("koridor", "Zed ..."),
+                          ("savas", "Fiora yan koridorda bölünmüş itiş (split push) yapabilir; ...")])
+        self.assertTrue(m.startswith("Rakip erken güçlü"))
+        self.assertIn("Fiora split itsin", m)
+        self.assertNotIn("Zed", m)
+
+    def test_tek_kopya(self):
+        from lolasistan import tepsi
+        cagri = []
+        with unittest.mock.patch.object(tepsi, "TEK_KOPYA_PORT", 47999):
+            self.assertTrue(tepsi.tek_kopya(lambda: cagri.append(1)))
+            self.assertFalse(tepsi.tek_kopya(lambda: None))   # ikinci kopya açılmaz
+            import time
+            time.sleep(0.3)
+        self.assertEqual(cagri, [1])                           # ilk kopyaya "öne gel" gitti

@@ -169,10 +169,10 @@ def analiz_et(mac: MacSonu, db, esya, rol, tahmini_build=None):
     return mac
 
 
-def kaydet(mac: MacSonu):
+def kaydet(mac: MacSonu, yol=None):
     klasor = os.path.join(KOK, "mac_gecmisi")
     os.makedirs(klasor, exist_ok=True)
-    yol = os.path.join(klasor, time.strftime("%Y-%m-%d_%H-%M") + f"_{norm(mac.ozet.split('·')[0]) or 'mac'}.txt")
+    yol = yol or os.path.join(klasor, time.strftime("%Y-%m-%d_%H-%M") + f"_{norm(mac.ozet.split('·')[0]) or 'mac'}.txt")
     with open(yol, "w", encoding="utf-8") as f:
         f.write(mac.ozet + "\n\n")
         for tur, m in mac.analiz:
