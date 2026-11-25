@@ -85,8 +85,9 @@ Uygulama açılışta GitHub deposundaki `surum.txt` dosyasına bakar. Daha yeni
 üstte **"Güncelle"** düğmesi çıkar. Düğmeye basınca yeni sürüm indirilip kurulur ve uygulama
 yeniden açılır. Ayarların, maç geçmişin ve önbellek dosyaların silinmez.
 
-Depo gizli olduğu için Ayarlar → Güncelleme kısmına bir **GitHub anahtarı** girmen gerekir.
-Anahtar sadece bu bilgisayarda (`config.json` içinde) saklanır ve GitHub'a yüklenmez.
+Depo herkese açıksa (public) hiçbir ayar gerekmez, güncellemeler herkese otomatik gelir.
+Depo gizliyse Ayarlar → Güncelleme kısmına okuma yetkili bir **GitHub anahtarı** girilmelidir;
+anahtar sadece o bilgisayarda (`config.json` içinde) saklanır ve GitHub'a yüklenmez.
 
 **Yeni sürüm yayınlamak:** GitHub'da depo sayfasında **Add file → Upload files** yolunu izle.
 Yeni sürümün içindeki her şeyi sürükle ve **Commit changes**'a bas. Eski dosyaların

@@ -1,7 +1,7 @@
 """Otomatik güncelleme: GitHub'daki depoda daha yeni bir sürüm varsa indirip kurar.
 
-Depo gizli (private) olduğu için okuma yetkili bir GitHub anahtarı (token) gerekir.
-Anahtar sadece bu bilgisayardaki config.json'da durur, GitHub'a yüklenmez.
+Depo herkese açıksa (public) anahtar gerekmez. Gizliyse okuma yetkili bir GitHub
+anahtarı (token) gerekir; anahtar sadece bu bilgisayardaki config.json'da durur.
 Kişisel dosyalar (ayarlar, maç geçmişi, önbellek) güncellemede asla silinmez."""
 import io
 import os
@@ -33,13 +33,18 @@ def _sayi(v):
 
 def _istek(yol, anahtar, ham=False, zaman=15):
     import requests
-    h = {"Authorization": f"Bearer {anahtar}", "X-GitHub-Api-Version": "2022-11-28",
+    h = {"X-GitHub-Api-Version": "2022-11-28",
          "Accept": "application/vnd.github.raw" if ham else "application/vnd.github+json"}
+    if anahtar:
+        h["Authorization"] = f"Bearer {anahtar}"
     r = requests.get(API + yol, headers=h, timeout=zaman)
     if r.status_code == 401:
-        raise RuntimeError("GitHub anahtarı geçersiz ya da süresi dolmuş. Ayarlardan yeni anahtar gir.")
+        raise RuntimeError("GitHub anahtarı geçersiz ya da süresi dolmuş. Ayarlardan yeni anahtar gir "
+                           "ya da depo herkese açıksa anahtar kutusunu boş bırak.")
     if r.status_code == 404:
-        raise RuntimeError("Depo bulunamadı. Depo adını ve anahtarın bu depoya erişimi olduğunu kontrol et.")
+        raise RuntimeError("Depo bulunamadı. Depo gizliyse Ayarlar'a okuma yetkili bir anahtar girmen gerekir.")
+    if r.status_code == 403 and r.headers.get("X-RateLimit-Remaining") == "0":
+        raise RuntimeError("GitHub kısa süreliğine sınır koydu; bir saat sonra tekrar dene.")
     r.raise_for_status()
     return r
 

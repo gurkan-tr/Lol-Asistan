@@ -313,8 +313,8 @@ class Motor:
         from . import guncelle
         anahtar = (self.ayar.get("github_anahtar") or "").strip()
         sonuc = {"var": False, "yerel": guncelle.yerel_surum(), "uzak": None, "mesaj": ""}
-        if not anahtar:
-            sonuc["mesaj"] = "Otomatik güncelleme için Ayarlar'a GitHub anahtarını gir."
+        if not (self.ayar.get("github_depo") or "").strip():
+            sonuc["mesaj"] = "Ayarlar'da GitHub deposu boş."
             return sonuc
         try:
             sonuc.update(guncelle.kontrol(self.ayar.get("github_depo", ""), anahtar))

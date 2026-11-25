@@ -398,3 +398,12 @@ class SurumBesTest(unittest.TestCase):
             import time
             time.sleep(0.3)
         self.assertEqual(cagri, [1])                           # ilk kopyaya "öne gel" gitti
+
+
+class AnahtarsizGuncellemeTest(unittest.TestCase):
+    def test_public_depo_anahtarsiz(self):
+        from lolasistan import guncelle
+        cevap = unittest.mock.Mock(status_code=200, text="9.9.9", headers={})
+        with unittest.mock.patch("requests.get", return_value=cevap) as get:
+            self.assertTrue(guncelle.kontrol("gurkan-tr/Lol-Asistan", "")["var"])
+            self.assertNotIn("Authorization", get.call_args.kwargs["headers"])
