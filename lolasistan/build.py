@@ -5,6 +5,8 @@ aranır. Bir eşya oyundan kalkmışsa otomatik atlanır ve listedeki bir sonrak
 alternatif kullanılır. Böylece yeni yamalarda program bozulmaz."""
 from dataclasses import dataclass, field
 
+from .esya_bilgi import ACIKLAMA, CEKIRDEK_OZEL
+
 # Her slot = alternatifler listesi (ilk bulunan kullanılır)
 SABLON = {
     "adc_crit": {
@@ -142,6 +144,7 @@ class BuildSonucu:
     atlanan: list = field(default_factory=list)
     b_plani: list = field(default_factory=list)     # (koşul, id, ad)
     arketip_kod: str = ""
+    bilgi: dict = field(default_factory=dict)       # görünen ad -> {"aciklama", "alternatif": [ad]}
 
 
 def arketip_bul(s, rol):
@@ -257,9 +260,11 @@ def build_olustur(sampiyon, rol, profil, rakip, esya_db, rakipler=None) -> Build
     b = BuildSonucu(arketip=sab["ad"], arketip_kod=a)
 
     def coz(alternatifler):
-        for isim in alternatifler:
+        for i, isim in enumerate(alternatifler):
             r = esya_db.bul(isim)
             if r:
+                diger = [x[1] for x in (esya_db.bul(a) for a in alternatifler[i + 1:]) if x]
+                b.bilgi.setdefault(r[1], {"aciklama": ACIKLAMA.get(isim, ""), "alternatif": diger})
                 return r
         b.atlanan.extend(alternatifler)
         return None
@@ -275,7 +280,8 @@ def build_olustur(sampiyon, rol, profil, rakip, esya_db, rakipler=None) -> Build
     if r:
         b.bot = (r[0], r[1], bot_neden)
 
-    cekirdek = [x for x in (coz(s) for s in sab["cekirdek"]) if x]
+    cekirdek_sablon = CEKIRDEK_OZEL.get(sampiyon.alias, sab["cekirdek"])
+    cekirdek = [x for x in (coz(s) for s in cekirdek_sablon) if x]
     gec = [x for x in (coz(s) for s in sab["gec"]) if x]
     durum = []
     for _, alt, neden, tur in sorted(kurallar, key=lambda x: -x[0]):
@@ -376,6 +382,7 @@ def b_plani(a, b, profil, rakipler, esya_db):
         for isim in alternatifler:
             r = esya_db.bul(isim)
             if r:
+                b.bilgi.setdefault(r[1], {"aciklama": ACIKLAMA.get(isim, ""), "alternatif": []})
                 if r[1] not in kullanilan:
                     plan.append((kosul, r[0], r[1] + (" (buildde var, öne çek)" if r[1] in sonra else "")))
                     kullanilan.add(r[1])

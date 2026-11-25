@@ -19,7 +19,7 @@ Kurulum bitince masaüstünde **LoL Asistan** kısayolu oluşur. Bundan sonra sa
 - Seçim ekranı açılınca her şey otomatik gelir:
   - **Solda** karşı takım, koridorlarıyla birlikte. Senin rakibin nane yeşiliyle işaretli.
   - **Ortada** sana önerilen şampiyon ve nedenleri. Diğer seçeneklere tıklayınca onların buildi görünür.
-  - **Altta** build sırası. Turuncu çerçeveli eşyalar bu maça özel seçildi. Altındaki **B planı**, maçta Tab'a bakıp karar vermen için hazırlandı.
+  - **Altta** build sırası. Turuncu çerçeveli eşyalar bu maça özel seçildi. Hemen altındaki **"Neden bu eşyalar?"** bölümünde her eşyanın ne işe yaradığı, neden seçildiği ve yerine alınabilecek alternatifi yazar. Altındaki **B planı**, maçta Tab'a bakıp karar vermen için hazırlandı.
 - **Rünler**: Build'in altında, rakiplere göre ayarlanmış bir rün sayfası var. Örneğin:
   - patlama hasarlı bir koridor rakibine karşı Kemik Kaplama
   - uzaktan dürten bir rakibe karşı İkinci Rüzgar

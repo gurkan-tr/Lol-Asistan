@@ -168,7 +168,11 @@ class Motor:
     def _build_json(self, hedef, build, sayfa=None, buyu=None):
         if not build:
             return None
-        e = lambda i, ad, **k: {"id": i, "ad": ad, "ikon": self._ikon_e(i), **k}
+        def e(i, ad, **k):
+            temiz = ad.replace(" (buildde var, öne çek)", "")
+            bilgi = build.bilgi.get(temiz, {})
+            return {"id": i, "ad": ad, "ikon": self._ikon_e(i), "aciklama": bilgi.get("aciklama", ""),
+                    "alternatif": bilgi.get("alternatif", [])[:2], **k}
         return {
             "hedef": self._s(hedef), "arketip": build.arketip,
             "baslangic": [e(i, ad, adet=n) for i, ad, n in build.baslangic],

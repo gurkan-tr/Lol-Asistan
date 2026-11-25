@@ -138,7 +138,7 @@ footer{font-size:11px;color:var(--silik);padding:6px 24px}
 .bplan,.runler{margin-top:22px;padding-top:20px;border-top:1px solid var(--cizgi)}
 .bplan h4,.run-ust h4{font-family:var(--baslik);font-stretch:87.5%;font-size:18px;font-weight:600}
 .bplan p{font-size:13px;color:var(--soluk);margin:2px 0 10px}
-.kosul{display:grid;grid-template-columns:1fr 36px 220px;gap:14px;align-items:center;padding:8px 12px;border-radius:12px}
+.kosul{display:grid;grid-template-columns:1fr 36px 1.1fr;gap:14px;align-items:center;padding:8px 12px;border-radius:12px}
 .kosul:nth-child(odd){background:#ffffff05}
 .kosul .esya{width:36px;height:36px}
 .kosul .k{font-size:13px}
@@ -269,6 +269,20 @@ footer{font-size:11px;color:var(--silik);padding:6px 24px}
 .son .portre{margin:0 auto 4px}
 .son.k .portre{--halka:var(--yesil)}.son.y .portre{--halka:var(--kirmizi)}
 .bos-kart{font-size:13px;color:var(--soluk)}
+
+/* --- neden bu eşyalar --- */
+.nedenler-esya{margin-top:20px;padding-top:18px;border-top:1px solid var(--cizgi)}
+.nedenler-esya h4{font-family:var(--baslik);font-stretch:87.5%;font-size:18px;font-weight:600;margin-bottom:10px}
+.ne-satir{display:grid;grid-template-columns:34px 34px minmax(150px,210px) 1fr;gap:14px;align-items:start;padding:9px 10px;border-radius:12px}
+.ne-satir:nth-child(even){background:#ffffff05}
+.ne-satir .sira{font-family:var(--baslik);font-size:12px;color:var(--silik);padding-top:9px;text-align:center}
+.ne-satir .esya{width:34px;height:34px;border-radius:8px}
+.ne-satir .ad{font-weight:600;font-size:13.5px;line-height:1.3}
+.ne-satir .etiket{display:inline-block;margin-top:4px;font-size:11px;padding:1px 8px;border-radius:999px;background:var(--panel3);color:var(--soluk)}
+.ne-satir .etiket.ozel{background:#3A2E28;color:var(--ozel2)}
+.ne-satir .ac{font-size:13px;color:#CDD3E2;line-height:1.45}
+.ne-satir .yerine{font-size:12px;color:var(--silik);margin-top:3px}
+.kosul .ac{display:block;font-size:12px;font-weight:400;color:var(--soluk);margin-top:2px}
 @media (max-width:1080px){.masa,.perf-izgara,.ms-izgara{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -349,7 +363,7 @@ function portre(c,boy){
 function esya(e,boy){
   if(!e) return "";
   const img=e.ikon?`<img src="${esc(e.ikon)}" alt="" onerror="this.remove()">`:"";
-  return `<div class="esya" style="width:${boy}px;height:${boy}px" title="${esc(e.ad)}">${boy>=50?esc(e.ad.split(" ")[0]):""}${img}</div>`;
+  return `<div class="esya" style="width:${boy}px;height:${boy}px" title="${esc(e.ad+(e.aciklama?" — "+e.aciklama:""))}">${boy>=50?esc(e.ad.split(" ")[0]):""}${img}</div>`;
 }
 
 function rimg(r,boy,kilit){
@@ -454,6 +468,15 @@ function planHtml(p,mesaj){
   const dugme=mesaj?`<button class="dugme kucuk" onclick="kopyala(takimMesaji)" title="${esc(mesaj)}">Takıma kopyala</button>`:"";
   return `<section class="plan"><div class="plan-ust"><h3>Maç planı</h3>${dugme}</div>${p.map(x=>`<div class="plan-satir ${x.tur}"><span class="tur">${PLAN_TUR[x.tur]||""}</span><span>${esc(x.m)}</span></div>`).join("")}</section>`;
 }
+function nedenHtml(b){
+  const satir=(sira,e,etiket,ozel)=>e&&e.aciklama?`<div class="ne-satir"><span class="sira">${sira}</span>${esya(e,34)}
+    <div><div class="ad">${esc(e.ad)}</div><span class="etiket ${ozel?"ozel":""}">${esc(etiket)}</span></div>
+    <div><div class="ac">${esc(e.aciklama)}</div>${e.alternatif&&e.alternatif.length?`<div class="yerine">Yerine: ${esc(e.alternatif.join(", "))}</div>`:""}</div></div>`:"";
+  const botOzel=b.bot&&b.bot.neden!=="Standart";
+  const satirlar=[satir("Bot",b.bot,botOzel?b.bot.neden:"Standart bot",botOzel),
+    ...b.esyalar.map((e,i)=>satir(i+1+".",e,e.durum?e.neden:e.neden,e.durum))].join("");
+  return satirlar?`<div class="nedenler-esya"><h4>Neden bu eşyalar?</h4>${satirlar}</div>`:"";
+}
 function buildHtml(b,oyunda){
   if(!b) return "";
   const bas=`<div class="durak bas"><div class="no">Başla</div><div class="grup">${b.baslangic.map(e=>esya(e,40)).join("")}</div>
@@ -463,10 +486,10 @@ function buildHtml(b,oyunda){
   const sira=b.esyalar.map((e,i)=>`<div class="durak ${e.durum?"durum":""}"><div class="no">${i+1}.</div>${esya(e,54)}
     <div class="ead">${esc(e.ad)}</div><div class="neden">${esc(e.durum?e.neden:(e.neden==="Geç oyun"?"Geç oyun":"Çekirdek"))}</div></div>`).join("");
   const plan=b.b_plani.length?`<div class="bplan"><h4>B planı</h4><p>Maçta Tab'a bak; koşul oluşursa bu eşyayı al. Karar senin.</p>${
-    b.b_plani.map(k=>`<div class="kosul"><span class="k">${esc(k.kosul)}</span>${esya(k,36)}<span class="e">${esc(k.ad)}</span></div>`).join("")}</div>`:"";
+    b.b_plani.map(k=>`<div class="kosul"><span class="k">${esc(k.kosul)}</span>${esya(k,36)}<span class="e">${esc(k.ad)}${k.aciklama?`<span class="ac">${esc(k.aciklama)}</span>`:""}</span></div>`).join("")}</div>`:"";
   const ipucu=b.notlar.length?`<ul class="ipuclari">${b.notlar.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:"";
   return `<section class="build"><div class="build-ust"><h3>${esc(b.hedef.ad)} buildi</h3><span>${esc(b.arketip)} · turuncu çerçeveliler bu maça özel</span></div>
-    <div class="rota">${bas}<div class="ayrac"></div>${bot}${sira}</div>${runHtml(b.runler,b.hedef.alias,b.buyu,oyunda)}${plan}${ipucu}</section>`;
+    <div class="rota">${bas}<div class="ayrac"></div>${bot}${sira}</div>${nedenHtml(b)}${runHtml(b.runler,b.hedef.alias,b.buyu,oyunda)}${plan}${ipucu}</section>`;
 }
 
 function oyunEkrani(d){
