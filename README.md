@@ -6,10 +6,10 @@ analizini gösterir.
 
 ## Kurulum (bir kere)
 
-1. Bilgisayarında Python yoksa **Python 3.12** kur: https://www.python.org/downloads/
-   Kurulumun ilk ekranında **"Add Python to PATH"** kutusunu işaretle.
-2. Bu klasörü bir yere çıkar (örneğin Belgeler).
-3. **`KURULUM.bat`** dosyasına çift tıkla.
+1. Bu klasörü bir yere çıkar (örneğin Belgeler).
+2. **`KURULUM.bat`** dosyasına çift tıkla.
+   - Bilgisayarında Python yoksa kurulum onu da otomatik kurar (önce Windows'un winget'iyle, olmazsa python.org'dan indirerek).
+   - Windows "Bilgisayarınız korundu" uyarısı gösterirse **Ek bilgi → Yine de çalıştır**'a bas. İnternetten indirilen her .bat dosyasında bu uyarı çıkar.
 
 Kurulum bitince masaüstünde **LoL Asistan** kısayolu oluşur. Bundan sonra sadece ona tıklaman yeterli.
 
