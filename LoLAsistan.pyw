@@ -15,6 +15,8 @@ class Api:
 
     def __init__(self, motor):
         self._m = motor
+        self._tepsi = None
+        self._cikis = lambda: [w.destroy() for w in list(webview.windows)]
 
     def durum(self):
         return self._m.durum()
@@ -50,10 +52,15 @@ class Api:
         return self._m.guncelle_kur()
 
     def yeniden_baslat(self):
+        """Güncellemeden sonra: yeni kopyayı başlat, bu kopyayı tamamen kapat
+        (tepsi simgesi dahil; yoksa eski kopya arka planda canlı kalıyor)."""
+        import threading
         from lolasistan.guncelle import yeniden_baslat
         yeniden_baslat()
-        for w in list(webview.windows):
-            w.destroy()
+        if self._tepsi:
+            self._tepsi.durdur()
+        self._cikis()
+        threading.Timer(1.5, lambda: os._exit(0)).start()
 
     def sampiyon_adlari(self):
         return self._m.sampiyon_adlari()
@@ -99,6 +106,9 @@ def main():
         tepsi.durdur()
         if durum["pencere"]:
             durum["pencere"].destroy()
+        # Tepsi iş parçacığı süreci açık tutmasın: kısa süre sonra tamamen kapan
+        import threading
+        threading.Timer(2.0, lambda: os._exit(0)).start()
 
     tepsi = Tepsi(goster, cikis)
     tepsi_var = tepsi.baslat()
@@ -123,8 +133,11 @@ def main():
         tepsi.durdur()
         return True
 
+    api = Api(motor)
+    api._tepsi = tepsi
+    api._cikis = cikis
     w = webview.create_window(
-        "LoL Asistan", os.path.join(PAKET, "ui", "index.html"), js_api=Api(motor),
+        "LoL Asistan", os.path.join(PAKET, "ui", "index.html"), js_api=api,
         width=1260, height=880, min_size=(1000, 680), background_color="#171B27", hidden=gizli,
     )
     w.events.closing += kapaniyor
