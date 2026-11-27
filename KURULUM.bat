@@ -16,7 +16,7 @@ if not defined PY (
 )
 if not defined PY (
   echo.
-  echo   Python otomatik kurulamadi.
+  echo   Python otomatik kurulamadi. Ayrintilar: kurulum_log.txt
   echo   Acilan sayfadan Python 3.12'yi elle kur ^(ilk ekranda "Add Python to PATH" kutusunu isaretle^),
   echo   sonra bu dosyayi tekrar calistir.
   start https://www.python.org/downloads/release/python-31210/
@@ -65,18 +65,44 @@ exit /b 0
 
 rem ---------- Python 3.12'yi otomatik kur ----------
 :python_kur
+set "LOG=%~dp0kurulum_log.txt"
+echo [%date% %time%] Python kurulumu basladi > "%LOG%"
+
+rem 1) winget
 where winget >nul 2>nul
 if not errorlevel 1 (
   echo   Windows paket yoneticisi ^(winget^) ile kuruluyor...
-  winget install -e --id Python.Python.3.12 --scope user --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+  winget install -e --id Python.Python.3.12 --scope user --silent --accept-package-agreements --accept-source-agreements >> "%LOG%" 2>&1
+  echo winget cikis kodu: !errorlevel! >> "%LOG%"
 )
 if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" exit /b 0
 
-echo   python.org'dan indiriliyor...
+rem 2) python.org'dan indir: once Windows'un kendi curl'u, olmazsa PowerShell (TLS 1.2 zorunlu)
 set "KURULUM_EXE=%TEMP%\python-3.12.10-amd64.exe"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe' -OutFile $env:KURULUM_EXE"
-if not exist "%KURULUM_EXE%" exit /b 1
-echo   Kuruluyor...
-"%KURULUM_EXE%" /quiet InstallAllUsers=0 PrependPath=1 Include_launcher=1 Include_test=0 Include_doc=0
+set "URL=https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe"
+del "%KURULUM_EXE%" >nul 2>nul
+echo   python.org'dan indiriliyor...
+where curl >nul 2>nul
+if not errorlevel 1 curl.exe -L --fail --retry 3 -o "%KURULUM_EXE%" "%URL%" >> "%LOG%" 2>&1
+rem Yarim inmis (cok kucuk) dosyayi sil
+if exist "%KURULUM_EXE%" for %%A in ("%KURULUM_EXE%") do if %%~zA LSS 1000000 del "%KURULUM_EXE%"
+if not exist "%KURULUM_EXE%" (
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; $ProgressPreference='SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Uri $env:URL -OutFile $env:KURULUM_EXE" >> "%LOG%" 2>&1
+)
+if not exist "%KURULUM_EXE%" (
+  echo   Indirme basarisiz. Ayrintilar: kurulum_log.txt
+  echo indirme basarisiz >> "%LOG%"
+  exit /b 1
+)
+
+rem 3) Kur: ilerleme penceresi gorunur, hata olursa kullanici gorur
+echo   Kuruluyor ^(acilan Python penceresini kapatma^)...
+"%KURULUM_EXE%" /passive InstallAllUsers=0 PrependPath=1 Include_launcher=1 Include_test=0 Include_doc=0 /log "%TEMP%\python_kurulum.log"
+echo python kurulum cikis kodu: !errorlevel! >> "%LOG%"
+if not exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
+  echo   Sessiz kurulum olmadi, Python kurulum penceresi aciliyor.
+  echo   Pencerede "Add python.exe to PATH" kutusunu isaretleyip "Install Now"a bas.
+  "%KURULUM_EXE%" PrependPath=1 Include_launcher=1
+)
 del "%KURULUM_EXE%" >nul 2>nul
 exit /b 0
