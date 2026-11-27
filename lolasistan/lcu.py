@@ -110,6 +110,19 @@ class LCU:
             return {}
         return {c["championId"]: c.get("championPoints", 0) for c in veri if "championId" in c}
 
+    def onerilen_sayfalar(self, sampiyon_id, rol):
+        """İstemcinin bu şampiyon+koridor için önerdiği rün sayfaları (Riot istatistikleri).
+        Büyü önerileri de içinde (summonerSpellIds)."""
+        poz = {"top": "TOP", "jungle": "JUNGLE", "mid": "MIDDLE", "adc": "BOTTOM", "support": "UTILITY"}.get(rol, "MIDDLE")
+        for p in (poz, poz.lower()):
+            try:
+                v = self.get(f"/lol-perks/v1/recommended-pages/champion/{sampiyon_id}/position/{p}/map/11")
+            except Exception:
+                v = None
+            if v:
+                return v
+        return []
+
     def secim_ekrani(self):
         return self.get("/lol-champ-select/v1/session")
 

@@ -7,10 +7,11 @@ import threading
 import time
 
 from .analiz import profil_cikar, rolleri_tahmin_et
-from .build import arketip_bul, build_olustur
-from .runler import RunDB, run_olustur
+from .build import arketip_bul, build_olustur, build_opgg
+from . import kaynaklar, opgg, ugg
+from .runler import RunDB, riot_sayfasi, run_olustur
 from .champs import KOK, ROL_AD, ROLLER, SINIF_AD, SampiyonDB, rol_coz
-from .buyuler import BUYU, SICRA, buyu_oner
+from .buyuler import BUYU, SICRA, BuyuOnerisi, buyu_oner
 from .gecmis import Gecmis, sik_hatalar
 from .oneri import sampiyon_oner
 from .plan import ban_oner, mac_plani, takim_mesaji
@@ -24,6 +25,7 @@ VARSAYILAN_AYAR = {
     "buyu_aktar": True,
     "github_depo": "gurkan-tr/Lol-Asistan", "github_anahtar": "",
     "kapatinca_simgeye": True, "secimde_one_getir": True,
+    "veri_kaynagi": "opgg", "opgg_bolge": "global", "opgg_lig": "emerald_plus", "ugg_kullan": True,
     "lol_klasoru": "",
 }
 
@@ -51,6 +53,8 @@ class Motor:
         self._sayfalar = {}        # alias -> RunSayfasi (son analizde hesaplanan)
         self._buyuler = {}         # alias -> BuyuOnerisi
         self._sicra_d = False
+        self._riot_onbellek = {}   # (şampiyon id, rol) -> istemcinin önerdiği sayfa
+        self._opgg_onbellek = {}   # (şampiyon id, rol) -> OP.GG verisi
         self.gecmis = Gecmis()
         self.gecmis_durum = ""     # "Maç geçmişi okunuyor 12/40" gibi
         self._gecmis_calisiyor = False
@@ -111,18 +115,86 @@ class Motor:
     def _s(self, s):
         if not s:
             return None
+        cevrimici = bool(self.dd and self.dd.surum)
         return {"alias": s.alias, "ad": s.ad, "ikon": self._ikon_s(s),
-                "sinif": SINIF_AD.get(s.sinif, s.sinif), "hasar": s.hasar}
+                "sinif": SINIF_AD.get(s.sinif, s.sinif), "hasar": s.hasar,
+                "splash": f"{DD}/cdn/img/champion/splash/{s.alias}_0.jpg" if cevrimici else None,
+                "yukleme": f"{DD}/cdn/img/champion/loading/{s.alias}_0.jpg" if cevrimici else None}
 
     def _run_json(self, sayfa):
         if not sayfa:
             return None
         return {"ana": sayfa.ana, "yan": sayfa.yan, "kilit": sayfa.kilit, "ana_runler": sayfa.ana_runler,
                 "yan_runler": sayfa.yan_runler, "parcalar": sayfa.parcalar, "nedenler": sayfa.nedenler,
-                "uygulanabilir": sayfa.uygulanabilir}
+                "uygulanabilir": sayfa.uygulanabilir, "kaynak": sayfa.kaynak, "notlar": sayfa.notlar}
+
+    def _riot_oneri(self, s, rol):
+        """Riot'un (istemcinin) bu şampiyon ve koridor için önerisi; istemci kapalıysa None."""
+        if not self._lcu or not s.id:
+            return None
+        k = (s.id, rol)
+        if k not in self._riot_onbellek:
+            try:
+                sayfalar = self._lcu.onerilen_sayfalar(s.id, rol) or []
+            except Exception:
+                sayfalar = []
+            self._riot_onbellek[k] = sayfalar[0] if sayfalar else None
+        return self._riot_onbellek[k]
+
+    def _veri(self, s, rol, rakip=None):
+        """OP.GG (genel + koridor rakibine karşı) ve U.GG verisini paralel çekip birleştirir."""
+        if self.ayar.get("veri_kaynagi", "opgg") != "opgg" or not s or not s.id:
+            return None
+        k = (s.id, rol, rakip.id if rakip is not None else 0)
+        if k in self._opgg_onbellek:
+            return self._opgg_onbellek[k]
+        from concurrent.futures import ThreadPoolExecutor
+        bolge, lig = self.ayar.get("opgg_bolge", "global"), self.ayar.get("opgg_lig", "emerald_plus")
+        isler = {"genel": lambda: opgg.adaylar(opgg.ham_getir(s.id, rol, bolge, lig))}
+        if rakip is not None and rakip.id:
+            isler["eslesme"] = lambda: opgg.adaylar(opgg.ham_getir(s.id, rol, bolge, lig, hedef=rakip.id),
+                                                    kaynak=f"{rakip.ad} karşısında")
+        if self.ayar.get("ugg_kullan", True) and self.dd and self.dd.surum:
+            isler["ugg"] = lambda: ugg.adaylar(ugg.ham_getir(s.id, self.dd.surum), rol)
+        sonuc = {}
+        with ThreadPoolExecutor(max_workers=3) as ex:
+            gelecek = {ad: ex.submit(f) for ad, f in isler.items()}
+            for ad, g in gelecek.items():
+                try:
+                    sonuc[ad] = g.result(timeout=15)
+                except Exception:
+                    sonuc[ad] = None
+        try:
+            veri = kaynaklar.birlestir(sonuc.get("genel"), sonuc.get("eslesme"), sonuc.get("ugg"),
+                                       rakip.ad if rakip is not None else None, self.rundb.sirala)
+        except Exception:
+            veri = None
+        self._opgg_onbellek[k] = veri
+        return veri
+
+    def _build(self, s, rol, profil, rakip, rakipler):
+        return (build_opgg(s, rol, profil, rakip, self.esya, rakipler, self._veri(s, rol, rakip))
+                or build_olustur(s, rol, profil, rakip, self.esya, rakipler))
 
     def _sayfa(self, s, rol, profil, rakip):
-        sayfa = run_olustur(s, arketip_bul(s, rol), rol, profil, rakip, self.rundb)
+        try:
+            kendi = run_olustur(s, arketip_bul(s, rol), rol, profil, rakip, self.rundb)
+        except Exception:
+            kendi = None   # rün verisi beklenmedik biçimdeyse kendi sayfamızı atla, istatistik sayfası yeter
+        veri = (self._veri(s, rol, rakip) or {}).get("run")
+        sayfa = None
+        if veri and len(veri.get("parca_ids") or []) == 3:
+            sayfa = riot_sayfasi({"perks": [{"id": i} for i in veri["ana_ids"] + veri["yan_ids"] + veri["parca_ids"]],
+                                  "primaryPerkStyleId": veri["ana"], "secondaryPerkStyleId": veri["yan"]}, self.rundb)
+            if sayfa:
+                sayfa.kaynak = "opgg"
+                sayfa.nedenler = [f"İstatistikte en iyi sayfa · {veri.get('etiket', '')}"]
+        if not sayfa:
+            sayfa = riot_sayfasi(self._riot_oneri(s, rol), self.rundb)
+        if sayfa:
+            sayfa.notlar = [f"Rakibe göre düşünebilirsin: {n}" for n in (kendi.nedenler if kendi else [])]
+        else:
+            sayfa = kendi
         self._sayfalar[s.alias] = sayfa
         return sayfa
 
@@ -130,11 +202,26 @@ class Motor:
         if not b:
             return None
         v = self.dd.surum if self.dd else None
-        j = lambda i: {"id": i, "ad": BUYU[i][0], "ikon": f"{DD}/cdn/{v}/img/spell/{BUYU[i][1]}.png" if v else None}
-        return {"d": j(b.idler()[0]), "f": j(b.idler()[1]), "neden": b.neden}
+        def j(i):
+            ad, resim = BUYU.get(i, (f"Büyü {i}", None))
+            return {"id": i, "ad": ad, "ikon": f"{DD}/cdn/{v}/img/spell/{resim}.png" if v and resim else None}
+        return {"d": j(b.idler()[0]), "f": j(b.idler()[1]), "neden": b.neden, "notlar": b.notlar, "kaynak": b.kaynak}
 
     def _buyu(self, s, rol, profil, rakip):
-        b = buyu_oner(s, arketip_bul(s, rol), rol, profil, rakip, self._sicra_d)
+        kendi = buyu_oner(s, arketip_bul(s, rol), rol, profil, rakip, self._sicra_d)
+        op = (self._veri(s, rol, rakip) or {}).get("buyu")
+        if op:
+            ids, neden, kaynak = op["ids"], f"İstatistikte en iyi · {op.get('etiket', '')}", "opgg"
+        else:
+            ids = [i for i in ((self._riot_oneri(s, rol) or {}).get("summonerSpellIds") or []) if i]
+            neden, kaynak = "Riot'un bu şampiyon ve koridor için önerisi", "riot"
+        if len(ids) == 2:
+            b = BuyuOnerisi(ikinci=ids[1] if ids[0] == SICRA else ids[0], sicra_d=self._sicra_d,
+                            neden=neden, ikili=tuple(ids), kaynak=kaynak)
+            if kendi.ikinci not in ids:
+                b.notlar.append(f"Rakibe göre düşünebilirsin: {kendi.neden}")
+        else:
+            b = kendi
         self._buyuler[s.alias] = b
         return b
 
@@ -177,11 +264,18 @@ class Motor:
             "hedef": self._s(hedef), "arketip": build.arketip,
             "baslangic": [e(i, ad, adet=n) for i, ad, n in build.baslangic],
             "bot": e(build.bot[0], build.bot[1], neden=build.bot[2]) if build.bot else None,
-            "esyalar": [e(i, ad, neden=n, durum=n not in ("Çekirdek", "Geç oyun")) for i, ad, n in build.esyalar],
+            "esyalar": [e(i, ad, neden=n, durum=n not in ("Çekirdek", "Geç oyun") and not n.startswith("İstatistik"))
+                        for i, ad, n in build.esyalar],
             "b_plani": [e(i, ad, kosul=k) for k, i, ad in build.b_plani],
             "notlar": build.notlar,
             "runler": self._run_json(sayfa),
             "buyu": self._buyu_json(buyu),
+            "kaynak": build.kaynak,
+            "kaynaklar": build.kaynaklar,
+            "cekirdek_etiket": build.cekirdek_etiket,
+            "yetenek": ({"sira": build.yetenek["sira"], "maks": opgg.maks_sirasi(build.yetenek["sira"]),
+                         "oran": build.yetenek.get("oran"), "etiket": build.yetenek.get("etiket", "")}
+                        if build.yetenek else None),
         }
 
     # ---------------- analiz ----------------
@@ -199,7 +293,7 @@ class Motor:
                                      kisisel=k_sampiyon)
         hedef = benim or (oneriler[0].sampiyon if oneriler else None)
         rakip = rr.get(rol)
-        build = build_olustur(hedef, rol, profil, rakip, self.esya, rakipler) if hedef else None
+        build = self._build(hedef, rol, profil, rakip, rakipler) if hedef else None
         sayfa = self._sayfa(hedef, rol, profil, rakip) if hedef else None
         buyu = self._buyu(hedef, rol, profil, rakip) if hedef else None
         self._baglam = (rol, profil, rr, rakipler)
@@ -234,7 +328,7 @@ class Motor:
         if not s or not self._baglam:
             return None
         rol, profil, rr, rakipler = self._baglam
-        return self._build_json(s, build_olustur(s, rol, profil, rr.get(rol), self.esya, rakipler),
+        return self._build_json(s, self._build(s, rol, profil, rr.get(rol), rakipler),
                                 self._sayfa(s, rol, profil, rr.get(rol)), self._buyu(s, rol, profil, rr.get(rol)))
 
     def runleri_uygula(self, alias):
@@ -521,6 +615,8 @@ class Motor:
 
                 if son is None:  # yeni seçim ekranı
                     self._son_secim = None
+                    self._riot_onbellek = {}
+                    self._opgg_onbellek = {}
                     ids = lcu.sahip_olunanlar()
                     sahip = {self.db.id_ile(i).alias for i in ids if self.db.id_ile(i)} if ids else None
                     ustalik = {self.db.id_ile(i).alias: p for i, p in lcu.ustaliklar().items() if self.db.id_ile(i)}

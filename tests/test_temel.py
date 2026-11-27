@@ -392,7 +392,11 @@ class SurumBesTest(unittest.TestCase):
     def test_tek_kopya(self):
         from lolasistan import tepsi
         cagri = []
-        with unittest.mock.patch.object(tepsi, "TEK_KOPYA_PORT", 47999):
+        import socket
+        with socket.socket() as bos:
+            bos.bind(("127.0.0.1", 0))
+            port = bos.getsockname()[1]
+        with unittest.mock.patch.object(tepsi, "TEK_KOPYA_PORT", port):
             self.assertTrue(tepsi.tek_kopya(lambda: cagri.append(1)))
             self.assertFalse(tepsi.tek_kopya(lambda: None))   # ikinci kopya açılmaz
             import time
@@ -407,3 +411,117 @@ class AnahtarsizGuncellemeTest(unittest.TestCase):
         with unittest.mock.patch("requests.get", return_value=cevap) as get:
             self.assertTrue(guncelle.kontrol("gurkan-tr/Lol-Asistan", "")["var"])
             self.assertNotIn("Authorization", get.call_args.kwargs["headers"])
+
+
+OPGG_ORNEK = {"meta": {"version": "16.23"}, "data": {
+    "core_items": [{"ids": [3153, 6672, 6333], "play": 557, "win": 319, "pick_rate": 0.2}],
+    "boots": [{"ids": [3047], "play": 2309, "win": 1137}],
+    "starter_items": [{"ids": [1055, 2003], "play": 3214, "win": 1590}],
+    "last_items": [{"ids": [3053], "play": 400, "win": 220}, {"ids": [6333], "play": 300, "win": 150},
+                   {"ids": [3036], "play": 200, "win": 110}],
+    "runes": [{"id": 8010, "primary_page_id": 8000, "primary_rune_ids": [8010, 9111, 9104, 8299],
+               "secondary_page_id": 8400, "secondary_rune_ids": [8242, 8473], "stat_mod_ids": [5005, 5008, 5001],
+               "play": 1442, "win": 712}],
+    "summoner_spells": [{"ids": [4, 14], "win": 1651, "play": 3261}],
+    "skills": [{"order": ["Q", "E", "W", "Q", "Q", "R", "Q", "W", "Q", "W", "R", "W", "W", "E", "E"], "play": 1172, "win": 596}]}}
+
+
+class OpggDD:
+    dil = "en_US"
+    ESYA = {"3153": "Blade of The Ruined King", "6672": "Kraken Slayer", "6333": "Death's Dance",
+            "3047": "Plated Steelcaps", "1055": "Doran's Blade", "2003": "Health Potion", "3053": "Sterak's Gage",
+            "3036": "Lord Dominik's Regards", "6609": "Chempunk Chainsword", "3033": "Mortal Reminder",
+            "3111": "Mercury's Treads", "3075": "Thornmail"}
+
+    def esyalar(self, dil):
+        return {"data": {i: {"name": n, "maps": {"11": True}, "gold": {"purchasable": True, "total": 3000},
+                             "stats": {}} for i, n in self.ESYA.items()}}
+
+
+UGG_ORNEK = {"12": {"17": {"4": [[
+    [900, 470, 8000, 8400, [8473, 9111, 8010, 8242, 9104, 8299]],     # rünler (karışık sırada)
+    [3000, 1500, [4, 12]],                                           # büyüler
+    [2800, 1400, [1055, 2003]],                                      # başlangıç
+    [700, 400, [3153, 6672, 6333]],                                  # çekirdek (OP.GG ile aynı → toplanır)
+    [600, 320, ["Q", "E", "W", "Q", "Q", "R", "Q", "W", "Q", "W", "R", "W", "W", "E", "E"], "QWE"],
+    [[[3053, 300, 520], [3036, 60, 100]], [[3075, 40, 70]], []],     # 4/5/6. eşya seçenekleri [id, galibiyet, maç]
+    [1500, 3000], 0, [3000, 1500, ["5005", "5008", "5001"]]], "2026-11-26T22:56:19Z"]}}}
+
+
+class CokluKaynakTest(unittest.TestCase):
+    def test_opgg_adaylar_ve_maks(self):
+        from lolasistan.opgg import adaylar, maks_sirasi
+        v = adaylar(OPGG_ORNEK)
+        self.assertEqual(v["cekirdek"][0]["ids"], [3153, 6672, 6333])
+        self.assertEqual(maks_sirasi(v["yetenek"][0]["sira"]), "Q > W > E")
+        # alanlar data.summary altında gelirse de okunur
+        self.assertTrue(adaylar({"data": {"summary": OPGG_ORNEK["data"]}})["cekirdek"])
+
+    def test_ugg_cozme(self):
+        from lolasistan.ugg import adaylar
+        u = adaylar(UGG_ORNEK, "top")
+        self.assertEqual(u["cekirdek"][0], {"ids": [3153, 6672, 6333], "mac": 700, "kazanma": 400})
+        self.assertEqual(u["buyu"][0]["ids"], [4, 12])
+        self.assertEqual(u["parca"], [5005, 5008, 5001])
+        self.assertIn({"ids": [3053], "mac": 520, "kazanma": 300}, u["son"])
+        self.assertIsNone(adaylar(UGG_ORNEK, "mid"))           # o rolde veri yok
+        self.assertIsNone(adaylar({"bozuk": 1}, "top"))
+
+    def test_iki_sitede_ayni_build_toplanir(self):
+        from lolasistan import kaynaklar, opgg, ugg
+        v = kaynaklar.birlestir(opgg.adaylar(OPGG_ORNEK), None, ugg.adaylar(UGG_ORNEK, "top"))
+        self.assertEqual(v["cekirdek"]["mac"], 557 + 700)
+        self.assertEqual(sorted(v["cekirdek"]["kaynaklar"]), ["OP.GG", "U.GG"])
+        self.assertIn("OP.GG + U.GG", v["cekirdek"]["etiket"])
+
+    def test_az_macli_yuzde_yuz_one_gecemez(self):
+        from lolasistan.kaynaklar import sec
+        s = sec([("OP.GG", False, [{"ids": [1, 2, 3], "mac": 1000, "kazanma": 560},
+                                   {"ids": [4, 5, 6], "mac": 6, "kazanma": 6}])])
+        self.assertEqual(s["ids"], [1, 2, 3])
+
+    def test_rakibe_karsi_iyi_olan_one_gecer(self):
+        from lolasistan.kaynaklar import sec
+        genel = [{"ids": [1, 2, 3], "mac": 1000, "kazanma": 520}, {"ids": [1, 2, 9], "mac": 800, "kazanma": 410}]
+        esl = [{"ids": [1, 2, 9], "mac": 60, "kazanma": 42}, {"ids": [1, 2, 3], "mac": 50, "kazanma": 22}]
+        s = sec([("OP.GG", False, genel), ("Darius karşısında", True, esl)])
+        self.assertEqual(s["ids"], [1, 2, 9])
+        self.assertEqual(s["eslesme"], {"mac": 60, "oran": 70})
+
+    def test_build_veriyle_ve_rakibe_ozel_esya_veride_olandan(self):
+        from lolasistan import kaynaklar, opgg
+        from lolasistan.build import build_opgg
+        db = SampiyonDB()
+        esya = EsyaDB(OpggDD())
+        rak = [db.bul(x) for x in ["Darius", "Soraka", "Aatrox", "Jinx", "Zed"]]
+        genel = opgg.adaylar(OPGG_ORNEK)
+        genel["son"].append({"ids": [3033], "mac": 150, "kazanma": 80})   # bu şampiyon Mortal Reminder da alıyor
+        v = kaynaklar.birlestir(genel, None, None, "Darius")
+        b = build_opgg(db.bul("Irelia"), "top", profil_cikar(rak), db.bul("Darius"), esya, rak, v)
+        adlar = [a for _, a, _ in b.esyalar]
+        self.assertEqual(adlar[:3], ["Blade of The Ruined King", "Kraken Slayer", "Death's Dance"])
+        self.assertIn("Mortal Reminder", adlar)     # anti-heal: şablondaki ilk seçenek değil, verideki
+        self.assertNotIn("Chempunk Chainsword", adlar)
+        self.assertEqual(b.kaynak, "opgg")
+
+    def test_ugg_runleri_siraya_dizilir(self):
+        from lolasistan.runler import RunDB, YEDEK_AGAC
+        ID = {"Conqueror": 8010, "Triumph": 9111, "LegendAlacrity": 9104, "LastStand": 8299,
+              "BonePlating": 8473, "Unflinching": 8242}
+
+        class DD:
+            dil = "en_US"
+
+            def _veri(self, t, d):
+                return [{"id": sid, "key": k, "name": k, "icon": "x", "slots": [
+                    {"runes": [{"id": ID.get(r, sid * 10 + i * 3 + j), "key": r, "name": r, "icon": "y"}
+                               for j, r in enumerate(sat)]} for i, sat in enumerate(satirlar)]}
+                        for k, (sid, satirlar) in YEDEK_AGAC.items()]
+        db = RunDB(DD())
+        self.assertEqual(db.sirala(8000, 8400, [8473, 9111, 8010, 8242, 9104, 8299]),
+                         ([8010, 9111, 9104, 8299], [8473, 8242]))
+
+    def test_kaynak_yoksa_kendi_builde_duser(self):
+        from lolasistan.build import build_opgg
+        db = SampiyonDB()
+        self.assertIsNone(build_opgg(db.bul("Irelia"), "top", profil_cikar([]), None, EsyaDB(None), [], None))

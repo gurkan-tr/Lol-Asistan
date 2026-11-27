@@ -145,6 +145,10 @@ class BuildSonucu:
     b_plani: list = field(default_factory=list)     # (koşul, id, ad)
     arketip_kod: str = ""
     bilgi: dict = field(default_factory=dict)       # görünen ad -> {"aciklama", "alternatif": [ad]}
+    kaynak: str = "tahmin"                          # "opgg" ya da "tahmin"
+    yetenek: dict = None                            # {"sira": [...], "oran": ..}
+    kaynaklar: list = field(default_factory=list)   # ["OP.GG", "U.GG", "Darius karşısında"]
+    cekirdek_etiket: str = ""
 
 
 def arketip_bul(s, rol):
@@ -406,3 +410,84 @@ def b_plani(a, b, profil, rakipler, esya_db):
     if profil.cc >= 2 and merkur and not (b.bot and b.bot[1] == merkur[1]):
         ekle("Sürekli CC yiyip ölüyorsan (bot değiştir)", ["Mercury's Treads"])
     return plan
+
+
+# ------------------------------------------------------------------
+# OP.GG verisiyle build: çekirdek istatistikten, ekler rakibe göre
+# ------------------------------------------------------------------
+def build_opgg(sampiyon, rol, profil, rakip, esya_db, rakipler, veri):
+    """veri: kaynaklar.birlestir() çıktısı (OP.GG + U.GG + rakibe özel).
+    Eşyalar bu yamada çözülemezse None döner (programın kendi builde düşülür)."""
+    if not veri or esya_db.cevrimdisi or not veri.get("cekirdek"):
+        return None
+    a = arketip_bul(sampiyon, rol)
+    b = BuildSonucu(arketip=f"Yama {veri.get('yama') or '?'} istatistikleri", arketip_kod=a)
+    havuz = veri.get("havuz") or set()
+
+    def id_coz(iid):
+        bilgi = esya_db.id_bilgi(iid)
+        if not bilgi:
+            return None
+        b.bilgi.setdefault(bilgi["ad"], {"aciklama": ACIKLAMA.get(bilgi["en"], ""), "alternatif": []})
+        return (str(iid), bilgi["ad"])
+
+    def isim_coz(alternatifler):
+        """Rakibe özel eşya: şampiyonun verisinde (gerçek maçlarda) görülen alternatif öncelikli."""
+        cozulen = [(isim, esya_db.bul(isim)) for isim in alternatifler]
+        cozulen = [(isim, r) for isim, r in cozulen if r]
+        if not cozulen:
+            return None
+        cozulen.sort(key=lambda x: 0 if x[1][0] and int(x[1][0]) in havuz else 1)
+        isim, r = cozulen[0]
+        b.bilgi.setdefault(r[1], {"aciklama": ACIKLAMA.get(isim, ""),
+                                  "alternatif": [x[1][1] for x in cozulen[1:]][:2]})
+        return r
+
+    if veri.get("baslangic"):
+        sayilar = {}
+        for i in veri["baslangic"]["ids"]:
+            sayilar[i] = sayilar.get(i, 0) + 1
+        for i, n in sayilar.items():
+            r = id_coz(i)
+            if r:
+                b.baslangic.append((r[0], r[1], n))
+
+    kurallar, bot_degisim = durum_kurallari(a, profil, rakip)
+    if bot_degisim:
+        r = isim_coz(bot_degisim[0])
+        if r:
+            b.bot = (r[0], r[1], bot_degisim[1])
+    if not b.bot and veri.get("bot"):
+        r = id_coz(veri["bot"]["ids"][0])
+        if r:
+            b.bot = (r[0], r[1], veri["bot"].get("etiket") or "İstatistiklerde en çok alınan")
+
+    cek = veri["cekirdek"]
+    secilen, adlar = [], set()
+    maks = 6 if rol == "adc" else 5
+
+    def ekle(r, neden):
+        if r and r[1] not in adlar and len(secilen) < maks:
+            secilen.append((r[0], r[1], neden))
+            adlar.add(r[1])
+
+    for iid in cek["ids"]:
+        ekle(id_coz(iid), "İstatistik çekirdek")
+    b.cekirdek_etiket = cek.get("etiket", "")
+    if len(secilen) < 2:
+        return None
+    for _, alt, neden, _tur in sorted(kurallar, key=lambda x: -x[0])[:2]:
+        ekle(isim_coz(alt), neden)
+    for e in veri.get("son") or []:
+        ekle(id_coz(e["id"]), f"İstatistik geç oyun · %{e['oran']} kazanma")
+    b.esyalar = secilen
+
+    if profil.gorunmezlik:
+        b.notlar.append("Görünmez rakip var: tılsımı Kâhin Merceği (Oracle Lens) yap, Kontrol Totemi taşı.")
+    if rakip is not None:
+        b.notlar.append(f"Koridor rakibin büyük ihtimalle {rakip.ad}.")
+    b.b_plani = b_plani(a, b, profil, rakipler or [], esya_db)
+    b.kaynak = "opgg"
+    b.kaynaklar = veri.get("kaynak_adlari") or []
+    b.yetenek = veri.get("yetenek")
+    return b

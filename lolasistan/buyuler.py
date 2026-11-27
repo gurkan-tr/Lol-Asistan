@@ -17,8 +17,16 @@ class BuyuOnerisi:
     neden: str
     sicra_d: bool = False       # Sıçra D tuşunda mı (istemcideki mevcut seçimden)
     notlar: list = field(default_factory=list)
+    ikili: tuple = None         # Riot önerisi: (büyü1, büyü2)
+    kaynak: str = "tahmin"
 
     def idler(self):
+        if self.ikili:
+            a, b = self.ikili
+            if SICRA not in self.ikili:
+                return (a, b)
+            diger = b if a == SICRA else a
+            return (SICRA, diger) if self.sicra_d else (diger, SICRA)
         return (SICRA, self.ikinci) if self.sicra_d else (self.ikinci, SICRA)
 
 

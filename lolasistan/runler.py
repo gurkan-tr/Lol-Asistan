@@ -127,6 +127,39 @@ class RunDB:
                     for r in sat:
                         self.run[r] = {"id": None, "ad": _okunur(r), "ikon": None}
 
+    def run_id(self, rid):
+        for r in self.run.values():
+            if r["id"] == rid:
+                return r
+        return None
+
+    def agac_id(self, sid):
+        for a in self.agac.values():
+            if a["id"] == sid:
+                return {"id": a["id"], "ad": a["ad"], "ikon": a["ikon"]}
+        return None
+
+    def sirala(self, ana_id, yan_id, karisik):
+        """U.GG'nin karışık verdiği 6 rünü (ana 4, yan 2) satır sırasına dizer."""
+        if self.cevrimdisi:
+            return None
+        ana = next((a for a in self.agac.values() if a["id"] == ana_id), None)
+        yan = next((a for a in self.agac.values() if a["id"] == yan_id), None)
+        if not ana or not yan:
+            return None
+        satir_id = lambda agac: [[self.run[k]["id"] for k in sat if k in self.run] for sat in agac["satirlar"]]
+        ana_s, yan_s = satir_id(ana), satir_id(yan)
+        ana_ids = []
+        for sat in ana_s[:4]:
+            bulunan = [i for i in karisik if i in sat]
+            if len(bulunan) != 1:
+                return None
+            ana_ids.append(bulunan[0])
+        yan_ids = [i for sat in yan_s[1:] for i in karisik if i in sat]
+        if len(yan_ids) != 2:
+            return None
+        return ana_ids, yan_ids
+
     def satir_bul(self, agac, key):
         for i, sat in enumerate(self.agac[agac]["satirlar"]):
             if key in sat:
@@ -144,6 +177,8 @@ class RunSayfasi:
     parcalar: list
     nedenler: list = field(default_factory=list)
     uygulanabilir: bool = True
+    kaynak: str = "tahmin"          # "riot" = istemcinin önerdiği sayfa
+    notlar: list = field(default_factory=list)
 
     def perk_ids(self):
         return ([self.kilit["id"]] + [r["id"] for r in self.ana_runler] +
@@ -227,4 +262,29 @@ def run_olustur(sampiyon, arketip, rol, profil, rakip, db: RunDB) -> RunSayfasi:
         kilit=db.run[kilit_key], ana_runler=ana_run, yan_runler=yan_run,
         parcalar=[{"id": p, "ad": PARCA[p]} for p in parca], nedenler=neden,
         uygulanabilir=not db.cevrimdisi,
+    )
+
+
+def riot_sayfasi(oneri, db: RunDB):
+    """İstemcinin önerdiği rün sayfasını (Riot'un güncel yama istatistikleri) RunSayfasi'na çevirir."""
+    if not oneri:
+        return None
+    perkler = oneri.get("perks") or []
+    if len(perkler) != 9:
+        return None
+
+    def run(p):
+        r = db.run_id(p.get("id"))
+        return r or {"id": p.get("id"), "ad": p.get("name") or str(p.get("id")), "ikon": None}
+
+    def agac(sid):
+        a = db.agac_id(sid)
+        return a or {"id": sid, "ad": AGAC_TR.get({8000: "Precision", 8100: "Domination", 8200: "Sorcery",
+                                                    8300: "Inspiration", 8400: "Resolve"}.get(sid, ""), str(sid)),
+                     "ikon": None}
+    return RunSayfasi(
+        ana=agac(oneri.get("primaryPerkStyleId")), yan=agac(oneri.get("secondaryPerkStyleId")),
+        kilit=run(perkler[0]), ana_runler=[run(p) for p in perkler[1:4]], yan_runler=[run(p) for p in perkler[4:6]],
+        parcalar=[{"id": p.get("id"), "ad": PARCA.get(p.get("id"), p.get("name") or str(p.get("id")))} for p in perkler[6:9]],
+        nedenler=[], uygulanabilir=True, kaynak="riot",
     )

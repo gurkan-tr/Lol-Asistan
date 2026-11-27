@@ -26,7 +26,7 @@ class DataDragon:
             self.cevrimici = True
         except Exception:
             if os.path.isdir(ONBELLEK):
-                surumler = sorted(os.listdir(ONBELLEK), key=_surum_anahtar)
+                surumler = sorted((d for d in os.listdir(ONBELLEK) if d[:1].isdigit()), key=_surum_anahtar)
                 self.surum = surumler[-1] if surumler else None
 
     def _veri(self, tur, dil):

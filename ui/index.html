@@ -8,20 +8,21 @@
    Zemin: gece mürekkebi · Vurgu: nane · Maça özel: kayısı · Büyü: lavanta
    İmza: altıgen portreler + hasar tipine göre renk alan ışıma */
 :root{
-  --gece:#161A26; --panel:#1E2333; --panel2:#262C3F; --panel3:#2E3550; --cizgi:#2C3246;
-  --pirinc:#8ED8C4; --pirinc2:#C3EEE2;          /* ana vurgu: nane */
-  --ozel:#F2B48A; --ozel2:#F8D3B8;              /* maça özel: kayısı */
-  --metin:#E8EBF4; --soluk:#98A1B8; --silik:#6B7390;
-  --ad:#F2B48A; --ap:#B9A8F5; --mix:#8ED8C4; --kirmizi:#EE8E8E; --yesil:#8FD6A0;
+  --gece:#0F1124; --panel:#171A33; --panel2:#1F2342; --panel3:#2A2F55; --cizgi:#272B4D;
+  --pirinc:#43E5D7; --pirinc2:#A6F4EC;          /* ana vurgu: hextech camgöbeği */
+  --ozel:#F4C35A; --ozel2:#FBE3A6;              /* maça özel: altın */
+  --metin:#EEF0FA; --soluk:#9BA3C7; --silik:#6A7199;
+  --ad:#FF8A5B; --ap:#9C8CFF; --mix:#43E5D7; --kirmizi:#FF6B81; --yesil:#5BE49B;
   --baslik:"Bahnschrift","DIN Alternate","Segoe UI",sans-serif;
   --govde:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
   --altigen:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
-  --yuvarlak:16px;
+  --kesik:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+  --yuvarlak:4px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{background:var(--gece);color:var(--metin);font:14px/1.55 var(--govde);overflow:hidden;
-  background-image:radial-gradient(900px 420px at 85% -8%,#24304A 0%,transparent 70%),radial-gradient(700px 380px at -10% 110%,#1F2A3A 0%,transparent 70%)}
+  background-image:radial-gradient(1000px 500px at 90% -10%,#1C3550 0%,transparent 65%),radial-gradient(800px 420px at -10% 110%,#2A1E4D 0%,transparent 65%)}
 button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
 :focus-visible{outline:2px solid var(--pirinc);outline-offset:3px;border-radius:8px}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2E3550;border-radius:10px;border:2px solid var(--gece)}
@@ -30,7 +31,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
 /* --- üst şerit --- */
 header{display:flex;align-items:center;gap:16px;padding:0 24px}
 .marka{display:flex;align-items:center;gap:10px;font-family:var(--baslik);font-stretch:87.5%;font-weight:600;font-size:20px;letter-spacing:.01em}
-.marka::before{content:"";width:22px;height:25px;clip-path:var(--altigen);background:linear-gradient(160deg,var(--pirinc2),var(--pirinc) 55%,#5FAE9C)}
+.marka::before{content:"";width:22px;height:25px;clip-path:var(--altigen);background:linear-gradient(160deg,var(--ozel2),var(--pirinc) 60%,#2BA89E)}
 .marka b{font-weight:300;color:var(--soluk)}
 .sekmeler{display:flex;gap:2px;padding:4px;background:var(--panel);border-radius:999px;margin-left:8px}
 .sekme{padding:6px 16px;border-radius:999px;font-size:13px;color:var(--soluk)}
@@ -42,7 +43,7 @@ header{display:flex;align-items:center;gap:16px;padding:0 24px}
 .bosluk{flex:1}
 .dugme{padding:8px 16px;border-radius:999px;font-size:13px;background:var(--panel);color:var(--metin);transition:background .15s}
 .dugme:hover{background:var(--panel3)}
-.dugme.ana{background:var(--pirinc);color:#10251F;font-weight:600}
+.dugme.ana{background:linear-gradient(135deg,var(--pirinc2),var(--pirinc));color:#062A27;font-weight:700}
 .dugme.ana:hover{background:var(--pirinc2)}
 .dugme:disabled{opacity:.4;cursor:not-allowed}
 .dugme.kucuk{padding:5px 12px;font-size:12px}
@@ -196,7 +197,8 @@ footer{font-size:11px;color:var(--silik);padding:6px 24px}
 @keyframes nabiz{50%{box-shadow:0 0 0 9px #8fd6a00d}}
 
 /* --- maç sonu --- */
-.macsonu{max-width:980px;margin:0 auto}
+.macsonu{max-width:1100px;margin:0 auto}
+.macsonu .afis .kda{font-family:var(--baslik);font-size:22px;color:var(--metin)}
 .ms-ust{display:flex;align-items:center;gap:22px;margin:6px 0 24px}
 .ms-ust h1{font-family:var(--baslik);font-stretch:87.5%;font-size:40px;font-weight:600;line-height:1}
 .ms-ust .kda{font-family:var(--baslik);font-size:20px;color:var(--soluk);margin-top:8px}
@@ -283,7 +285,82 @@ footer{font-size:11px;color:var(--silik);padding:6px 24px}
 .ne-satir .ac{font-size:13px;color:#CDD3E2;line-height:1.45}
 .ne-satir .yerine{font-size:12px;color:var(--silik);margin-top:3px}
 .kosul .ac{display:block;font-size:12px;font-weight:400;color:var(--soluk);margin-top:2px}
+
+/* --- kaynak etiketi ve yetenek sırası --- */
+.kaynak{font-size:11.5px;padding:2px 10px;border-radius:999px;background:var(--panel3);color:var(--soluk);font-family:var(--govde);font-weight:400}
+.kaynak.opgg{background:#22362F;color:#BFEBDD}.kaynak.riot{background:#2B2F4A;color:#CFC6FA}
+.yetenek{display:flex;align-items:center;gap:14px;margin-top:18px;padding-top:16px;border-top:1px solid var(--cizgi);flex-wrap:wrap}
+.yetenek h4{font-family:var(--baslik);font-stretch:87.5%;font-size:18px;font-weight:600}
+.yetenek .maks{font-family:var(--baslik);font-size:17px;color:var(--pirinc)}
+.yetenek .seviyeler{display:flex;gap:3px}
+.yetenek .sv{width:24px;height:28px;border-radius:6px;background:var(--panel2);display:grid;place-items:center;font-family:var(--baslik);font-size:12px;color:var(--soluk);line-height:1}
+.yetenek .sv b{font-size:12px;color:var(--metin);font-weight:600}
+.yetenek .sv.R{background:#3A2E28}.yetenek .sv.R b{color:var(--ozel2)}
+.yetenek .sv small{display:block;font-size:8px;color:var(--silik);margin-top:1px}
 @media (max-width:1080px){.masa,.perf-izgara,.ms-izgara{grid-template-columns:1fr}}
+
+/* ============ v1.8 · "Draft gecesi" ============ */
+.sahne{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.build,.panel,.plan,.kart,.harita-kart,.ban-kart,.afis{clip-path:var(--kesik);border-radius:0}
+.panel{background:var(--panel);padding:18px 20px}
+.panel h3,.plan h3{font-family:var(--baslik);font-stretch:87.5%;font-size:18px;font-weight:700;letter-spacing:.01em}
+.panel-alt{font-size:12px;color:var(--soluk);margin:2px 0 10px}
+
+/* afiş: şampiyonun splash art'ı */
+.afis{position:relative;min-height:230px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+  padding:28px 34px;overflow:hidden;background:linear-gradient(120deg,color-mix(in srgb,var(--vurgu,var(--pirinc)) 30%,#141733),#141733 70%)}
+.afis-resim{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 22%;animation:yakin 1.6s cubic-bezier(.2,.7,.2,1)}
+.afis::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#0F1124 0%,#0F1124e6 32%,#0F112466 62%,transparent),linear-gradient(0deg,#0F1124 0%,transparent 45%)}
+.afis-filigran{position:absolute;right:-10px;bottom:-40px;font-family:var(--baslik);font-stretch:75%;font-weight:700;font-size:190px;line-height:1;
+  color:color-mix(in srgb,var(--vurgu,var(--pirinc)) 22%,transparent);white-space:nowrap}
+@keyframes yakin{from{transform:scale(1.08);filter:brightness(1.3)}}
+.afis-icerik{position:relative;z-index:1;max-width:720px}
+.afis-ust{font-size:13px;color:var(--vurgu,var(--pirinc));font-weight:600}
+.afis h1{font-family:var(--baslik);font-stretch:75%;font-weight:700;font-size:68px;line-height:.95;letter-spacing:-.01em;margin:4px 0 12px;
+  text-shadow:0 4px 30px #0008}
+.afis .vs{display:inline-flex;align-items:center;gap:10px;font-size:13px;color:var(--soluk);margin:0 0 12px;padding:4px 14px 4px 4px;
+  border-radius:999px;background:#0F1124b3}
+.afis .vs b{color:var(--metin)}
+.afis-nedenler{display:flex;flex-wrap:wrap;gap:6px}
+.afis-nedenler span{font-size:12.5px;padding:4px 11px;border-radius:999px;background:#0F1124c7;backdrop-filter:blur(4px)}
+.afis-nedenler .arti{color:#C9F7DC}.afis-nedenler .eksi{color:#FFC2CC}
+.afis .kilit{margin-top:12px;font-size:13px;color:var(--yesil)}
+.afis-p{color:var(--soluk)}
+.puan-halka{position:relative;z-index:1;flex:none;width:96px;height:96px;border-radius:50%;display:grid;place-items:center;align-content:center;
+  background:radial-gradient(closest-side,#0F1124 82%,transparent 83% 100%),conic-gradient(var(--vurgu,var(--pirinc)) calc(var(--p)*1%),#ffffff1a 0)}
+.puan-halka b{font-family:var(--baslik);font-size:28px;line-height:1}
+.puan-halka span{font-size:11px;color:var(--soluk)}
+
+/* rakip takım: yükleme ekranı kartları */
+.ykartlar{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.ykart{position:relative;aspect-ratio:3/3.3;overflow:hidden;background:linear-gradient(160deg,color-mix(in srgb,var(--vurgu) 35%,#1A1D3A),#12142B);
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%)}
+.ykart img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 15%;transition:transform .4s}
+.ykart:hover img{transform:scale(1.04)}
+.ykart::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#0F1124 2%,#0F1124cc 28%,transparent 60%)}
+.ykart-ini{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--baslik);font-weight:700;font-size:64px;color:#ffffff22}
+.ykart-rol{position:absolute;top:10px;left:10px;z-index:1;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:#0F1124cc;color:var(--soluk)}
+.ykart-alt{position:absolute;left:12px;right:12px;bottom:12px;z-index:1;display:grid;gap:2px}
+.ykart-alt b{font-family:var(--baslik);font-stretch:87.5%;font-size:20px;line-height:1.05}
+.ykart-alt span{font-size:12px;color:var(--soluk)}
+.ykart-alt .hasar{justify-self:start;margin-top:4px}
+.ykart.rakibim{box-shadow:inset 0 0 0 2px var(--pirinc)}
+.ykart.rakibim .ykart-rol{background:var(--pirinc);color:#062A27}
+.ykart.bos{background:repeating-linear-gradient(135deg,#171A33 0 12px,#1A1E3A 12px 24px)}
+.ykart.bos::after{display:none}
+.ykart-bekle{position:absolute;inset:0;display:grid;place-items:center;font-size:12.5px;color:var(--silik)}
+.ykart.yeni{animation:kartgir .7s cubic-bezier(.2,.7,.2,1)}
+@keyframes kartgir{from{transform:translateY(14px);opacity:0;filter:brightness(2)}}
+
+/* alt ızgara */
+.izgara{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+.yan{display:flex;flex-direction:column;gap:18px}
+.yan .alternatifler{grid-template-columns:1fr}
+.yan .plan-satir{grid-template-columns:1fr;gap:2px}
+.build{background:var(--panel)}
+.hasar.AD{color:var(--ad);background:#ff8a5b22}.hasar.AP{color:var(--ap);background:#9c8cff26}.hasar.MIX{color:var(--mix);background:#43e5d71f}
+.durak.durum .esya{box-shadow:0 0 0 2px var(--ozel),0 0 18px #f4c35a40}
+@media (max-width:1180px){.izgara{grid-template-columns:1fr}.afis h1{font-size:52px}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -333,6 +410,7 @@ footer{font-size:11px;color:var(--silik);padding:6px 24px}
     <label class="onay"><input type="checkbox" id="ayar-one"> Maç bulununca pencereyi öne getir</label>
     <label class="onay"><input type="checkbox" id="ayar-oto"> Windows açılınca başlat (simge durumunda)</label>
     <h2 class="ara">Seçim ekranında</h2>
+    <label class="onay"><input type="checkbox" id="ayar-opgg"> Build, rün, büyü ve yetenek sırasını OP.GG istatistiklerinden al</label>
     <label class="onay"><input type="checkbox" id="ayar-itemset"> Şampiyonu kilitleyince buildi mağazaya eşya seti olarak ekle</label>
     <label class="onay"><input type="checkbox" id="ayar-buyu"> Şampiyonu kilitleyince sihirdar büyülerini otomatik ayarla</label>
     <label class="onay"><input type="checkbox" id="ayar-run"> Şampiyonu kilitleyince rün sayfasını otomatik oluştur</label>
@@ -384,7 +462,7 @@ function runHtml(r,alias,buyu,oyunda){
   const by=bu=>bu?`<div class="agac"><div class="agac-ad">Sihirdar büyüleri</div><div class="buyuler">
       <div class="buyu">${kare(bu.d)}<span class="tus">D</span></div><div class="buyu">${kare(bu.f)}<span class="tus">F</span></div></div>
       <div class="buyu-neden">${esc(bu.neden)}</div></div>`:"";
-  return `<div class="runler"><div class="run-ust"><h4>Rünler ve büyüler</h4>
+  return `<div class="runler"><div class="run-ust"><h4>Rünler ve büyüler ${kaynakEtiket(r.kaynak)}</h4>
     ${oyunda?"":`<button class="dugme ana" ${engel?`disabled title="${esc(engel)}"`:""} onclick="runUygula('${esc(alias)}')">Rünleri ve büyüleri uygula</button>`}</div>
     <div class="run-govde">${by(buyu)}
       <div class="agac"><div class="agac-ad">${rimg(r.ana,20)}${esc(r.ana.ad)}</div>
@@ -396,7 +474,7 @@ function runHtml(r,alias,buyu,oyunda){
       <div class="agac"><div class="agac-ad">İstatistik parçaları</div><div class="parcalar">
         ${r.parcalar.map(p=>`<span class="parca ${p.id===5013?"ozel":""}">${esc(p.ad)}</span>`).join("")}</div></div>
     </div>
-    ${r.nedenler.length?`<ul class="run-neden">${r.nedenler.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:""}</div>`;
+    ${[...r.nedenler,...(r.notlar||[]),...((buyu&&buyu.notlar)||[])].length?`<ul class="run-neden">${[...r.nedenler,...(r.notlar||[]),...((buyu&&buyu.notlar)||[])].map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:""}</div>`;
 }
 let bildirimZaman=null;
 function bildir(m,hata){
@@ -417,42 +495,51 @@ function bosEkran(d){
     <h1>${esc(d.baslik)}</h1><p>${esc(d.mesaj)}</p>${dugmeler}</div>`;
 }
 
+function vurguRenk(h){return h==="AP"?"var(--ap)":h==="MIX"?"var(--mix)":"var(--ad)"}
+function afisArka(c){
+  return c&&c.splash?`<img class="afis-resim" src="${esc(c.splash)}" alt="" onerror="this.remove()">`:
+    `<div class="afis-filigran">${esc((c&&c.ad)||"")}</div>`;
+}
+function yuklemeKart(r){
+  if(r.bos) return `<div class="ykart bos"><span class="ykart-rol">${esc(r.rol_ad)}</span><span class="ykart-bekle">Seçim bekleniyor</span></div>`;
+  const yeni=!oncekiRakipler.has(r.alias)&&oncekiRakipler.size>0;
+  const resim=r.yukleme?`<img src="${esc(r.yukleme)}" alt="" onerror="this.remove()">`:`<span class="ykart-ini">${bas(r.ad)}</span>`;
+  return `<div class="ykart ${r.rakibim?"rakibim":""} ${yeni?"yeni":""}" style="--vurgu:${vurguRenk(r.hasar)}">${resim}
+    <span class="ykart-rol">${esc(r.rol_ad)}${r.rakibim?" · rakibin":""}</span>
+    <div class="ykart-alt"><b>${esc(r.ad)}</b><span>${esc(r.sinif)}</span><span class="hasar ${esc(r.hasar)}">${esc(r.hasar)}</span></div></div>`;
+}
 function secimEkrani(d){
-  const rakipSatir=d.rakipler.map(r=>{
-    const yeni=!r.bos&&!oncekiRakipler.has(r.alias)&&oncekiRakipler.size>0;
-    return `<div class="koridor ${r.bos?"secilmedi":""} ${r.rakibim?"benim":""} ${yeni?"yeni":""}">
-      <span class="rol">${esc(r.rol_ad)}</span>${portre(r.bos?null:r,44)}
-      <div><div class="ad">${r.bos?"Seçilmedi":esc(r.ad)}</div>${r.bos?"":`<div class="sinif">${esc(r.sinif)}${r.rakibim?" · koridor rakibin":""}</div>`}</div>
-      ${r.bos?"":`<span class="hasar ${esc(r.hasar)}">${esc(r.hasar)}</span>`}</div>`}).join("");
+  const kartlar=d.rakipler.map(yuklemeKart).join("");
   oncekiRakipler=new Set(d.rakipler.filter(r=>!r.bos).map(r=>r.alias));
   const oran=d.oran_ad==null?"":`<div class="oran"><div class="cubuk"><i style="width:${d.oran_ad}%;background:var(--ad)"></i><i style="width:${100-d.oran_ad}%;background:var(--ap)"></i></div>
     <div class="etiket"><span style="color:var(--ad)">%${d.oran_ad} fiziksel</span><span style="color:var(--ap)">%${100-d.oran_ad} büyü</span></div></div>`;
   const notlar=d.notlar.length?`<ul class="notlar">${d.notlar.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:"";
+  const analiz=(oran||notlar)?`<section class="panel"><h3>Karşı takım analizi</h3>${oran}${notlar}</section>`:"";
 
   const ana=d.benim||(d.oneriler[0]||null);
-  let kahraman="";
+  let afis;
   if(ana){
     const o=d.oneriler.find(x=>x.alias===ana.alias);
-    const ust=d.benim?(d.kilitli?"Seçimin":"Seçmek üzere olduğun şampiyon"):`${esc(d.rol_ad)} için önerim`;
-    const vs=d.rakibim?`<span class="vs">karşısında ${portre(d.rakibim,30)} ${esc(d.rakibim.ad)}</span>`:"";
-    const neden=o?`<ul class="nedenler">${o.nedenler.map(n=>`<li class="${n.arti?"arti":"eksi"}">${esc(n.m)}</li>`).join("")}</ul>`:"";
+    const ust=d.benim?(d.kilitli?"Seçimin":"Seçmek üzeresin"):`${esc(d.rol_ad)} için önerim`;
+    const vs=d.rakibim?`<span class="vs">${portre(d.rakibim,30)}<span>karşısında <b>${esc(d.rakibim.ad)}</b></span></span>`:"";
+    const neden=o?`<div class="afis-nedenler">${o.nedenler.map(n=>`<span class="${n.arti?"arti":"eksi"}">${n.arti?"+":"−"} ${esc(n.m)}</span>`).join("")}</div>`:"";
     const rs=d.runset;
-    const kilit=d.kilitli?`<span class="kilit">✓ Kilitlendi${d.itemset?" · "+esc(d.itemset):""}${[rs,d.buyuset].filter(Boolean).map(x=>`<br><span style="color:${x.ok?"var(--yesil)":"var(--ad)"}">${x.ok?"✓":"!"} ${esc(x.mesaj)}</span>`).join("")}</span>`:"";
-    const vurgu=ana.hasar==="AP"?"var(--ap)":ana.hasar==="MIX"?"var(--mix)":"var(--ad)";
-    kahraman=`<section class="kahraman" style="--vurgu:${vurgu}">${portre(ana,118)}<div>
-      <div class="ust">${ust}${o?` · uyum puanı <span class="puan">${o.puan}</span>`:""}</div>
-      <h2>${esc(ana.ad)}${vs}</h2>${neden}${kilit}</div></section>`;
+    const kilit=d.kilitli?`<div class="kilit">✓ Kilitlendi${d.itemset?" · "+esc(d.itemset):""}${[rs,d.buyuset].filter(Boolean).map(x=>` · <span style="color:${x.ok?"var(--yesil)":"var(--ad)"}">${esc(x.mesaj)}</span>`).join("")}</div>`:"";
+    afis=`<section class="afis" style="--vurgu:${vurguRenk(ana.hasar)}">${afisArka(ana)}
+      <div class="afis-icerik"><div class="afis-ust">${ust}${o?` · uyum puanı ${o.puan}`:""}</div><h1>${esc(ana.ad)}</h1>${vs}${neden}${kilit}</div></section>`;
   }else{
-    kahraman=`<section class="kahraman"><div></div><div><h2>Aday bulunamadı</h2><div class="ust">Bu koridor için uygun şampiyon yok. Ayarlardaki favori listesini kontrol et.</div></div></section>`;
+    afis=`<section class="afis"><div class="afis-icerik"><div class="afis-ust">Öneri yok</div><h1>Aday bulunamadı</h1>
+      <p class="afis-p">Bu koridor için uygun şampiyon yok. Ayarlardaki favori listesini kontrol et.</p></div></section>`;
   }
   const altlar=d.oneriler.filter(o=>!ana||o.alias!==ana.alias);
-  const altHtml=altlar.length?`<div><div class="kolon-baslik">Diğer seçenekler — tıkla, buildini gör</div><div class="alternatifler">${
-    altlar.map(o=>`<button class="alt ${secilenAlt===o.alias?"secili":""}" onclick="altSec('${esc(o.alias)}')">${portre(o,44)}
-      <div><div class="ad">${esc(o.ad)} <span class="puan">${o.puan}</span></div><div class="kisa">${esc((o.nedenler[0]||{}).m||"Genel uyum")}</div></div></button>`).join("")}</div></div>`:"";
+  const altHtml=altlar.length?`<section class="panel"><h3>Diğer seçenekler</h3><p class="panel-alt">Tıkla, buildini gör.</p><div class="alternatifler">${
+    altlar.map(o=>`<button class="alt ${secilenAlt===o.alias?"secili":""}" onclick="altSec('${esc(o.alias)}')">${portre(o,40)}
+      <div><div class="ad">${esc(o.ad)} <span class="puan">${o.puan}</span></div><div class="kisa">${esc((o.nedenler[0]||{}).m||"Genel uyum")}</div></div></button>`).join("")}</div></section>`:"";
   const uyari=d.rol_atanmadi?`<div class="bilgi-serit uyari">Bu modda koridor atanmadı; ayarlardaki varsayılan koridoru (${esc(d.rol_ad)}) kullanıyorum.</div>`:"";
-  return `<div class="masa">
-    <aside>${banKart(d)}<div class="kolon-baslik">Karşı takım</div><div class="rakipler">${rakipSatir}${oran}${notlar}</div></aside>
-    <div class="sag">${uyari}${kahraman}${planHtml(d.plan,d.takim_mesaji)}${altHtml}<div id="build-kutu">${buildHtml(d.build)}</div></div></div>`;
+  return `<div class="sahne">${uyari}${banKart(d)}${afis}
+    <div class="ykartlar">${kartlar}</div>
+    <div class="izgara"><div id="build-kutu">${buildHtml(d.build)}</div>
+      <aside class="yan">${analiz}${planHtml(d.plan,d.takim_mesaji)}${altHtml}</aside></div></div>`;
 }
 
 function banKart(d){
@@ -475,7 +562,15 @@ function nedenHtml(b){
   const botOzel=b.bot&&b.bot.neden!=="Standart";
   const satirlar=[satir("Bot",b.bot,botOzel?b.bot.neden:"Standart bot",botOzel),
     ...b.esyalar.map((e,i)=>satir(i+1+".",e,e.durum?e.neden:e.neden,e.durum))].join("");
-  return satirlar?`<div class="nedenler-esya"><h4>Neden bu eşyalar?</h4>${satirlar}</div>`:"";
+  const ust=b.cekirdek_etiket?`<p class="panel-alt">Çekirdek build: ${esc(b.cekirdek_etiket)}</p>`:"";
+  return satirlar?`<div class="nedenler-esya"><h4>Neden bu eşyalar?</h4>${ust}${satirlar}</div>`:"";
+}
+const KAYNAK_AD={opgg:"OP.GG",riot:"Riot önerisi",tahmin:"Tahmini"};
+function kaynakEtiket(k){return k?`<span class="kaynak ${k}">${KAYNAK_AD[k]||k}</span>`:""}
+function yetenekHtml(y){
+  if(!y) return "";
+  return `<div class="yetenek"><h4>Yetenek sırası</h4><span class="maks">${esc(y.maks)}</span>
+    <div class="seviyeler">${y.sira.map((t,i)=>`<span class="sv ${t==="R"?"R":""}"><span><b>${esc(t)}</b><small>${i+1}</small></span></span>`).join("")}</div></div>`;
 }
 function buildHtml(b,oyunda){
   if(!b) return "";
@@ -488,16 +583,17 @@ function buildHtml(b,oyunda){
   const plan=b.b_plani.length?`<div class="bplan"><h4>B planı</h4><p>Maçta Tab'a bak; koşul oluşursa bu eşyayı al. Karar senin.</p>${
     b.b_plani.map(k=>`<div class="kosul"><span class="k">${esc(k.kosul)}</span>${esya(k,36)}<span class="e">${esc(k.ad)}${k.aciklama?`<span class="ac">${esc(k.aciklama)}</span>`:""}</span></div>`).join("")}</div>`:"";
   const ipucu=b.notlar.length?`<ul class="ipuclari">${b.notlar.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:"";
-  return `<section class="build"><div class="build-ust"><h3>${esc(b.hedef.ad)} buildi</h3><span>${esc(b.arketip)} · turuncu çerçeveliler bu maça özel</span></div>
-    <div class="rota">${bas}<div class="ayrac"></div>${bot}${sira}</div>${nedenHtml(b)}${runHtml(b.runler,b.hedef.alias,b.buyu,oyunda)}${plan}${ipucu}</section>`;
+  return `<section class="build"><div class="build-ust"><h3>${esc(b.hedef.ad)} buildi</h3>${kaynakEtiket(b.kaynak)}<span>${esc(b.arketip)} · turuncu çerçeveliler bu maça özel</span></div>
+    <div class="rota">${bas}<div class="ayrac"></div>${bot}${sira}</div>${yetenekHtml(b.yetenek)}${nedenHtml(b)}${runHtml(b.runler,b.hedef.alias,b.buyu,oyunda)}${plan}${ipucu}</section>`;
 }
 
 function oyunEkrani(d){
   const h=d.hazirlik;
   if(!h||!h.build) return bosEkran(d);
-  return `<div class="oyun"><div class="oyun-ust"><span class="canli-nokta"></span><div>
-      <h1>Maç devam ediyor · ${esc(h.benim?h.benim.ad:h.build.hedef.ad)}</h1>
-      <p>Bu plan seçim ekranında hazırlandı ve maç sırasında değişmez. B planındaki koşullar için Tab'a bak, kararı sen ver.</p></div></div>
+  const c=h.benim||h.build.hedef;
+  return `<div class="oyun"><section class="afis" style="--vurgu:${vurguRenk(c.hasar)};min-height:190px">${afisArka(c)}
+      <div class="afis-icerik"><div class="afis-ust"><span class="canli-nokta" style="display:inline-block;margin-right:8px;vertical-align:middle"></span>Maç devam ediyor</div>
+      <h1>${esc(c.ad)}</h1><p class="afis-p">Bu plan seçim ekranında hazırlandı ve maç sırasında değişmez. B planındaki koşullar için Tab'a bak, kararı sen ver.</p></div></section>
     ${buildHtml(h.build,true)}${planHtml(h.plan)}</div>`;
 }
 function macSonu(d){
@@ -505,7 +601,9 @@ function macSonu(d){
   const s={iyi:"✓",uyari:"!",bilgi:"i"};
   const ol=d.olum||{};
   const bulgular=[...d.analiz,...(ol.notlar||[]).filter(n=>!d.analiz.some(a=>a.m===n.m))];
-  return `<div class="macsonu"><div class="ms-ust">${portre(d.sampiyon,84)}<div><h1>${esc(d.sampiyon?d.sampiyon.ad:"Maç")} ${sonuc}</h1><div class="kda">${esc(d.kda)}</div></div></div>
+  const c=d.sampiyon||{ad:"Maç",hasar:"AD"};
+  return `<div class="macsonu"><section class="afis" style="--vurgu:${d.kazandi?"var(--yesil)":"var(--kirmizi)"};min-height:200px;margin-bottom:18px">${afisArka(c)}
+      <div class="afis-icerik"><div class="afis-ust">Maç sonu analizi</div><h1>${esc(c.ad)} ${sonuc}</h1><div class="kda">${esc(d.kda)}</div></div></section>
     <div class="ms-izgara"><div><div class="kolon-baslik">Bir dahaki sefere</div>
     ${bulgular.map(a=>`<div class="bulgu ${a.tur}"><span class="s">${s[a.tur]}</span><span>${esc(a.m)}</span></div>`).join("")}
     <p style="color:var(--soluk);font-size:13px;margin-top:14px">Bu analiz maç geçmişine kaydedildi. Yeni maç bulunduğunda seçim ekranı analizi otomatik başlar.</p></div>
@@ -641,7 +739,7 @@ async function ayarAc(){
   rolSecici($("#ayar-rol"),a.varsayilan_rol||"mid");
   $("#havuz-alanlari").innerHTML=ROLLER.map(([k,ad])=>`<div class="havuz">
      <span>${ad}</span><input type="text" data-havuz="${k}" list="adlar" value="${esc((a.havuz&&a.havuz[k]||[]).join(", "))}"></div>`).join("");
-  $("#ayar-sadece").checked=!!a.sadece_havuz;
+  $("#ayar-sadece").checked=!!a.sadece_havuz;$("#ayar-opgg").checked=(a.veri_kaynagi||"opgg")==="opgg";
   $("#ayar-simge").checked=a.kapatinca_simgeye!==false;$("#ayar-one").checked=a.secimde_one_getir!==false;
   try{$("#ayar-oto").checked=!!(await api.oto_baslat_durumu())}catch(e){}$("#ayar-run").checked=a.run_aktar!==false;$("#ayar-buyu").checked=a.buyu_aktar!==false;$("#ayar-itemset").checked=a.item_set_aktar!==false;
   $("#ayar-klasor").value=a.lol_klasoru||"";
@@ -654,7 +752,7 @@ async function ayarKaydetSessiz(){
 async function ayarKaydet(){
   const havuz={};document.querySelectorAll("[data-havuz]").forEach(i=>havuz[i.dataset.havuz]=i.value.split(",").map(s=>s.trim()).filter(Boolean));
   await api.ayar_kaydet({varsayilan_rol:seciliRol($("#ayar-rol")),havuz,sadece_havuz:$("#ayar-sadece").checked,
-    item_set_aktar:$("#ayar-itemset").checked,run_aktar:$("#ayar-run").checked,kapatinca_simgeye:$("#ayar-simge").checked,secimde_one_getir:$("#ayar-one").checked,buyu_aktar:$("#ayar-buyu").checked,lol_klasoru:$("#ayar-klasor").value.trim(),
+    item_set_aktar:$("#ayar-itemset").checked,run_aktar:$("#ayar-run").checked,veri_kaynagi:$("#ayar-opgg").checked?"opgg":"kendi",kapatinca_simgeye:$("#ayar-simge").checked,secimde_one_getir:$("#ayar-one").checked,buyu_aktar:$("#ayar-buyu").checked,lol_klasoru:$("#ayar-klasor").value.trim(),
     github_depo:$("#ayar-depo").value.trim(),github_anahtar:$("#ayar-anahtar").value.trim()});
   try{await api.oto_baslat($("#ayar-oto").checked)}catch(e){}
   perdeKapat();guncellemeBak();

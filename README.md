@@ -71,6 +71,20 @@ kaydedilir, sonraki açılışlarda sadece yeni maçlar indirilir.
 
 İstemci kapalıyken **"Örnek maçı göster"** ya da **"Takımları elle gir"** ile deneyebilirsin.
 
+## Veri kaynağı
+
+Build, rünler, sihirdar büyüleri ve yetenek sırası üç kaynaktan birleştirilir:
+- **OP.GG** — şampiyonun o koridordaki genel istatistikleri (Zümrüt ve üstü)
+- **OP.GG, koridor rakibine karşı** — sadece o rakiple oynanan maçlar
+- **U.GG** — ikinci bir sitenin istatistikleri
+
+Her seçenek için hem kazanma oranına hem de maç sayısına bakılır. Az maçlı seçenekler ortalamaya
+doğru çekildiği için 5 maçta %100 kazanmış bir build, 1000 maçta %55 kazanmış olanı geçemez. İki sitede
+de önde olan seçenekler ve koridor rakibine karşı iyi giden buildler öne çıkar. Program bunun üstüne
+rakibe göre en fazla iki eşya ekler (anti-heal, delme, savunma); bunlarda da şampiyonun gerçek
+maçlarda aldığı eşya tercih edilir. Kaynaklara ulaşılamazsa Riot'un istemcideki önerisine, o da
+yoksa programın kendi tahminine düşülür.
+
 ## Ayarlar
 
 Uygulamadaki **Ayarlar** düğmesinden:
