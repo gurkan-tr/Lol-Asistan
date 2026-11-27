@@ -525,3 +525,71 @@ class CokluKaynakTest(unittest.TestCase):
         from lolasistan.build import build_opgg
         db = SampiyonDB()
         self.assertIsNone(build_opgg(db.bul("Irelia"), "top", profil_cikar([]), None, EsyaDB(None), [], None))
+
+
+class SurumDokuzTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.db = SampiyonDB()
+        cls.db.id_esle([(39, "Irelia", "Irelia", [], False), (122, "Darius", "Darius", [], False),
+                        (24, "Jax", "Jax", [], False), (54, "Malphite", "Malphite", [], True),
+                        (58, "Renekton", "Renekton", [], False), (114, "Fiora", "Fiora", [], False),
+                        (86, "Garen", "Garen", [], False), (150, "Gnar", "Gnar", [], False)])
+
+    def test_eslesmeler_cozme(self):
+        from lolasistan.opgg import eslesmeler
+        ham = {"data": {"summary": {"counters": [{"champion_id": 122, "play": 134, "win": 72}],
+                                    "positions": [{"counters": [{"champion_id": 54, "play": 122, "win": 42}]}]}}}
+        self.assertEqual(eslesmeler(ham), {122: (134, 72), 54: (122, 42)})
+
+    def test_gercek_eslesme_oneriyi_belirler(self):
+        rak = [self.db.bul("Darius")]
+        rr = rolleri_tahmin_et(rak)
+        # tabloya göre Malphite iyi olsa bile gerçek veri Garen'in çok daha iyi olduğunu söylüyor
+        esl = {"Garen": (0.56, 900), "Malphite": (0.44, 800), "Irelia": (0.51, 1000)}
+        o = sampiyon_oner(self.db, "top", rr, [], rak, sahip={"Garen", "Malphite", "Irelia"}, eslesme=esl)
+        self.assertEqual([x.sampiyon.alias for x in o], ["Garen", "Irelia", "Malphite"])
+        self.assertTrue(any("%56,0 kazanıyor (900 maç)" in m for _, m in o[0].nedenler))
+
+    def test_havuz_onerisi(self):
+        from lolasistan.gecmis import Sayac
+        from lolasistan.havuz import havuz_oner
+        kisisel = {"Irelia": Sayac(mac=20, galibiyet=12), "Jax": Sayac(mac=3, galibiyet=1)}
+        veri = {
+            39: {122: (500, 210), 54: (400, 170), 86: (300, 160)},       # Irelia: Darius ve Malphite zor
+            122: {24: (400, 180), 114: (300, 170), 58: (200, 100)},      # Darius'a karşı Jax %55, Fiora %43
+            54: {114: (300, 120), 24: (250, 140), 150: (200, 90)},       # Malphite'a karşı Fiora %60
+        }
+        h = havuz_oner(self.db, "top", kisisel, lambda c: veri.get(c.id))
+        self.assertEqual(h["ana"]["alias"], "Irelia")
+        self.assertEqual([z["alias"] for z in h["zor"]], ["Darius", "Malphite"])
+        yedekler = [y["alias"] for y in h["yedekler"]]
+        self.assertIn("Jax", yedekler)        # Darius'a karşı %55
+        self.assertIn("Gnar", yedekler)       # Malphite'a karşı %55 ve Darius'a karşı nötr;
+        self.assertNotIn("Fiora", yedekler)   # Fiora Malphite'a iyi ama Darius'a karşı %43 → dengesiz
+        kapsanan = {k for y in h["yedekler"] for k in y["kapsadigi"]}
+        self.assertEqual(kapsanan, {"Darius", "Malphite"})
+        self.assertEqual(h["kaynak"], "OP.GG")
+
+    def test_havuz_internetsiz_tabloya_duser(self):
+        from lolasistan.gecmis import Sayac
+        from lolasistan.havuz import havuz_oner
+        h = havuz_oner(self.db, "top", {"Darius": Sayac(mac=10, galibiyet=6)}, lambda c: None)
+        self.assertEqual(h["kaynak"], "tablo")
+        self.assertTrue(h["yedekler"])
+
+    def test_gelisim(self):
+        from lolasistan.gecmis import Gecmis, mac_coz
+        oyun = lambda gid, cs, gorus, kaz: {"gameId": gid, "mapId": 11, "gameCreation": gid, "gameDuration": 1800,
+            "participantIdentities": [{"participantId": 1, "player": {"puuid": "ben"}}],
+            "participants": [{"participantId": 1, "championId": 39, "teamId": 100, "timeline": {"lane": "TOP"},
+                              "stats": {"win": kaz, "totalMinionsKilled": cs, "neutralMinionsKilled": 0, "visionScore": gorus}}]}
+        g = Gecmis(maclar={i: mac_coz(oyun(i, 150 + i * 10, 15, i % 2 == 0), "ben") for i in range(1, 6)})
+        gl = g.gelisim()
+        self.assertEqual([x["cs_dk"] for x in gl], [5.33, 5.67, 6.0, 6.33, 6.67])
+        self.assertEqual(gl[0]["gorus_dk"], 0.5)
+
+    def test_sira_bende(self):
+        oturum = {"localPlayerCellId": 1, "myTeam": [{"cellId": 1, "championId": 0}], "theirTeam": [],
+                  "actions": [[{"type": "ban", "actorCellId": 1, "completed": False, "isInProgress": True}]]}
+        self.assertEqual(secim_oku(oturum).sira_bende, "ban")

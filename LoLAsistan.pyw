@@ -39,6 +39,9 @@ class Api:
     def uygula(self, alias):
         return self._m.uygula(alias)
 
+    def ses(self):
+        return self._m.ses()
+
     def performans(self):
         return self._m.performans()
 
@@ -116,6 +119,7 @@ def main():
     def olay(tur, baslik, mesaj):
         """Motorun bildirimleri: yeni seçim ekranı vb."""
         tepsi.bildir(baslik, mesaj)
+        # Maç bulunduğunda pencereyi öne getirme: LoL'deki "Kabul et" düğmesini kapatabilir.
         if tur == "secim" and motor.ayar.get("secimde_one_getir", True):
             goster()
 

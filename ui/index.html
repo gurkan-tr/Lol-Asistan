@@ -361,6 +361,26 @@ footer{font-size:11px;color:var(--silik);padding:6px 24px}
 .hasar.AD{color:var(--ad);background:#ff8a5b22}.hasar.AP{color:var(--ap);background:#9c8cff26}.hasar.MIX{color:var(--mix);background:#43e5d71f}
 .durak.durum .esya{box-shadow:0 0 0 2px var(--ozel),0 0 18px #f4c35a40}
 @media (max-width:1180px){.izgara{grid-template-columns:1fr}.afis h1{font-size:52px}}
+
+/* --- gelişim grafikleri ve havuz --- */
+.gelisim{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grafik h4{font-size:13px;font-weight:600;color:var(--soluk);margin-bottom:2px}
+.grafik .deger{font-family:var(--baslik);font-size:26px;font-weight:700;line-height:1.1}
+.grafik .fark{font-size:12px;margin-left:6px}
+.grafik .fark.iyi{color:var(--yesil)}.grafik .fark.kotu{color:var(--kirmizi)}.grafik .fark.ayni{color:var(--soluk)}
+.grafik svg{width:100%;height:auto;display:block;margin-top:6px}
+.grafik .not{font-size:11.5px;color:var(--silik);margin-top:2px}
+.havuz-izgara{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.havuz-kart{position:relative;overflow:hidden;min-height:180px;padding:14px;display:flex;flex-direction:column;justify-content:flex-end;
+  background:linear-gradient(160deg,var(--panel3),var(--panel2));clip-path:polygon(0 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%)}
+.havuz-kart img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 18%;opacity:.55}
+.havuz-kart::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#0F1124 15%,transparent 75%)}
+.havuz-kart>*:not(img){position:relative;z-index:1}
+.havuz-kart .rozet2{align-self:flex-start;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--pirinc);color:#062A27;margin-bottom:auto}
+.havuz-kart.yedek .rozet2{background:var(--ozel);color:#2A1F05}
+.havuz-kart b{font-family:var(--baslik);font-stretch:87.5%;font-size:22px}
+.havuz-kart span{font-size:12.5px;color:#D5D9EE;line-height:1.4}
+@media (max-width:1080px){.gelisim,.havuz-izgara{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -409,6 +429,10 @@ footer{font-size:11px;color:var(--silik);padding:6px 24px}
     <label class="onay"><input type="checkbox" id="ayar-simge"> Pencereyi kapatınca simge durumunda çalışmaya devam et</label>
     <label class="onay"><input type="checkbox" id="ayar-one"> Maç bulununca pencereyi öne getir</label>
     <label class="onay"><input type="checkbox" id="ayar-oto"> Windows açılınca başlat (simge durumunda)</label>
+    <label class="onay"><input type="checkbox" id="ayar-ses"> Sesli uyarılar (maç bulundu, ban ve seçim sırası)</label>
+    <h2 class="ara">Hedefler</h2>
+    <div class="havuz"><span>CS/dk</span><input type="text" id="ayar-hedef-cs" placeholder="7.0"></div>
+    <div class="havuz"><span>Görüş/dk</span><input type="text" id="ayar-hedef-gorus" placeholder="1.0"></div>
     <h2 class="ara">Seçim ekranında</h2>
     <label class="onay"><input type="checkbox" id="ayar-opgg"> Build, rün, büyü ve yetenek sırasını OP.GG istatistiklerinden al</label>
     <label class="onay"><input type="checkbox" id="ayar-itemset"> Şampiyonu kilitleyince buildi mağazaya eşya seti olarak ekle</label>
@@ -521,7 +545,8 @@ function secimEkrani(d){
   if(ana){
     const o=d.oneriler.find(x=>x.alias===ana.alias);
     const ust=d.benim?(d.kilitli?"Seçimin":"Seçmek üzeresin"):`${esc(d.rol_ad)} için önerim`;
-    const vs=d.rakibim?`<span class="vs">${portre(d.rakibim,30)}<span>karşısında <b>${esc(d.rakibim.ad)}</b></span></span>`:"";
+    const es=d.eslesme?` · <b style="color:${d.eslesme.oran>=50?"var(--yesil)":"var(--kirmizi)"}">%${String(d.eslesme.oran).replace(".",",")}</b> kazanma (${d.eslesme.mac} maç)`:"";
+    const vs=d.rakibim?`<span class="vs">${portre(d.rakibim,30)}<span>karşısında <b>${esc(d.rakibim.ad)}</b>${es}</span></span>`:"";
     const neden=o?`<div class="afis-nedenler">${o.nedenler.map(n=>`<span class="${n.arti?"arti":"eksi"}">${n.arti?"+":"−"} ${esc(n.m)}</span>`).join("")}</div>`:"";
     const rs=d.runset;
     const kilit=d.kilitli?`<div class="kilit">✓ Kilitlendi${d.itemset?" · "+esc(d.itemset):""}${[rs,d.buyuset].filter(Boolean).map(x=>` · <span style="color:${x.ok?"var(--yesil)":"var(--ad)"}">${esc(x.mesaj)}</span>`).join("")}</div>`:"";
@@ -647,6 +672,45 @@ function wr(oran){
   const renk=oran>=55?"var(--yesil)":oran<=45?"var(--kirmizi)":"var(--soluk)";
   return `<span class="wr"><i style="--w:${oran}%;--r:${renk}"></i>%${oran}</span>`;
 }
+
+function grafik(baslik,degerler,kazandi,opts){
+  const n=degerler.length; if(n<2) return "";
+  const W=600,H=150,P=12;
+  const hedef=opts.hedef||null;
+  const tum=[...degerler,...(hedef?[hedef]:[])];
+  let mn=Math.min(...tum),mx=Math.max(...tum); const pay=Math.max((mx-mn)*0.12,0.2); mn-=pay; mx+=pay;
+  const x=i=>P+i*(W-2*P)/(n-1), y=v=>H-P-(v-mn)*(H-2*P)/(mx-mn);
+  const ort=degerler.map((_,i)=>{const p=degerler.slice(Math.max(0,i-4),i+1);return p.reduce((a,b)=>a+b,0)/p.length});
+  const yol=a=>a.map((v,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  const noktalar=degerler.map((v,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="5" fill="${kazandi?(kazandi[i]?"var(--yesil)":"var(--kirmizi)"):"var(--soluk)"}" opacity=".85"/>`).join("");
+  const hedefCizgi=hedef?`<line x1="${P}" x2="${W-P}" y1="${y(hedef)}" y2="${y(hedef)}" stroke="var(--ozel)" stroke-dasharray="7 6" stroke-width="2"/>`:"";
+  const hedefYazi=hedef?` <span style="color:var(--ozel);font-size:12px">· hedef ${hedef}</span>`:"";
+  const son=opts.son, onceki=opts.onceki;
+  let fark="";
+  if(son!=null&&onceki!=null){const df=+(son-onceki).toFixed(2);fark=`<span class="fark ${df>0?"iyi":df<0?"kotu":"ayni"}">${df>0?"▲":df<0?"▼":"="} ${Math.abs(df)} (önceki 10: ${onceki})</span>`}
+  return `<div class="grafik"><h4>${baslik}${hedefYazi}</h4><div><span class="deger">${son??"-"}${opts.birim||""}</span>${fark}</div>
+    <svg viewBox="0 0 ${W} ${H}">${hedefCizgi}<path d="${yol(ort)}" fill="none" stroke="var(--pirinc)" stroke-width="2.5"/>${noktalar}</svg>
+    <div class="not">${opts.not||"Son 10 maçın ortalaması; çizgi 5 maçlık ortalama, noktalar yeşil = galibiyet."}</div></div>`;
+}
+function gelisimHtml(g){
+  if(!g) return `<div class="kart"><h3>Gelişimin</h3><div class="bos-kart">Grafikler için en az 4 maç (10 dakikadan uzun) gerekiyor. Maç geçmişi okundukça burası dolacak.</div></div>`;
+  const m=g.maclar, kaz=m.map(x=>x.kazandi);
+  const oranlar=m.map((_,i)=>{const p=m.slice(Math.max(0,i-9),i+1);return Math.round(p.filter(x=>x.kazandi).length*100/p.length)});
+  const cs=grafik("Dakika başı minyon (CS/dk)",m.map(x=>x.cs_dk),kaz,{hedef:g.destek?null:g.hedef_cs,son:g.cs_son,onceki:g.cs_onceki,
+      not:g.destek?"Destekte CS önemli değil; görüş puanına bak.":null});
+  const gr=grafik("Dakika başı görüş puanı",m.map(x=>x.gorus_dk),kaz,{hedef:g.hedef_gorus,son:g.gorus_son,onceki:g.gorus_onceki});
+  const wr=grafik("Kazanma oranı (son 10 maç)",oranlar,null,{son:g.oran_son,onceki:g.oran_onceki,birim:"%",not:"Her noktada o ana kadarki son 10 maçın kazanma oranı."});
+  return `<div class="kart"><h3>Gelişimin</h3><div class="aciklama">Son ${m.length} maç, eskiden yeniye. Hedefleri Ayarlar'dan değiştirebilirsin.</div><div class="gelisim">${g.destek?gr+cs:cs+gr}${wr}</div></div>`;
+}
+function havuzHtml(h){
+  if(!h||h.durum==="hesaplaniyor") return `<div class="kart"><h3>Şampiyon havuzu önerisi</h3><div class="bos-kart">Hesaplanıyor… (gerçek eşleşme verileri indiriliyor)</div></div>`;
+  if(h.durum!=="hazir") return `<div class="kart"><h3>Şampiyon havuzu önerisi</h3><div class="bos-kart">${h.durum==="hata"?"Hesaplanamadı: "+esc(h.mesaj):"Bu koridorda yeterli maçın yok. Birkaç maç oyna ya da Ayarlar'a favori şampiyonlarını yaz."}</div></div>`;
+  const kart=(c,rozet,yedek)=>`<div class="havuz-kart ${yedek?"yedek":""}">${c.yukleme?`<img src="${esc(c.yukleme)}" alt="" onerror="this.remove()">`:""}
+     <span class="rozet2">${rozet}</span><b>${esc(c.ad)}</b><span>${esc(c.neden)}</span></div>`;
+  const zor=h.zor&&h.zor.length?`<div class="aciklama" style="margin-top:12px">Ana şampiyonunun zor eşleşmeleri: ${h.zor.map(z=>esc(z.ad)+(z.oran!=null?` (%${z.oran})`:"")).join(", ")}</div>`:"";
+  return `<div class="kart"><h3>Şampiyon havuzu önerisi</h3><div class="aciklama">Ana şampiyonun ve onun zorlandığı rakiplere karşı iyi giden iki şampiyon. Kaynak: ${h.kaynak==="OP.GG"?"OP.GG gerçek eşleşme verisi":"counter tablosu"}.</div>
+    <div class="havuz-izgara">${kart(h.ana,"Ana",false)}${h.yedekler.map(y=>kart(y,"Yedek",true)).join("")}</div>${zor}</div>`;
+}
 function perfHtml(p){
   if(!p.hazir) return `<div class="bos"><div class="halka ${p.calisiyor?"":"durgun"}"></div><h1>Performansım</h1><p>${esc(p.mesaj)}</p>
     ${durum&&durum.baglanti?`<div class="dugmeler"><button class="dugme ana" onclick="gecmisYenile()">Maç geçmişini oku</button></div>`:""}</div>`;
@@ -663,6 +727,7 @@ function perfHtml(p){
       <button class="dugme" onclick="gecmisYenile()" ${p.calisiyor?"disabled":""}>${p.calisiyor?"Okunuyor…":"Yenile"}</button></div>
     <div class="kart"><h3>Son maçların</h3><div class="aciklama">Yeşil kazandın, kırmızı kaybettin.</div><div class="son-maclar">${
       p.son.map(m=>`<div class="son ${m.kazandi?"k":"y"}">${portre(m,46)}<div>${esc(m.kda)}</div></div>`).join("")}</div></div>
+    ${gelisimHtml(p.gelisim)}${havuzHtml(p.havuz)}
     <div class="perf-izgara"><div>
       <div class="kart"><h3>Şampiyonların</h3><div class="aciklama">Son 60 maç. Öneriler artık bu kazanma oranlarını da hesaba katıyor.</div>
         <div class="c-satir" style="color:var(--soluk);font-size:12px"><span></span><span>Şampiyon</span><span>Maç</span><span>Kazanma</span><span>KDA</span></div>
@@ -739,7 +804,8 @@ async function ayarAc(){
   rolSecici($("#ayar-rol"),a.varsayilan_rol||"mid");
   $("#havuz-alanlari").innerHTML=ROLLER.map(([k,ad])=>`<div class="havuz">
      <span>${ad}</span><input type="text" data-havuz="${k}" list="adlar" value="${esc((a.havuz&&a.havuz[k]||[]).join(", "))}"></div>`).join("");
-  $("#ayar-sadece").checked=!!a.sadece_havuz;$("#ayar-opgg").checked=(a.veri_kaynagi||"opgg")==="opgg";
+  $("#ayar-sadece").checked=!!a.sadece_havuz;$("#ayar-ses").checked=a.sesler!==false;
+  $("#ayar-hedef-cs").value=a.hedef_cs_dk??7;$("#ayar-hedef-gorus").value=a.hedef_gorus_dk??1;$("#ayar-opgg").checked=(a.veri_kaynagi||"opgg")==="opgg";
   $("#ayar-simge").checked=a.kapatinca_simgeye!==false;$("#ayar-one").checked=a.secimde_one_getir!==false;
   try{$("#ayar-oto").checked=!!(await api.oto_baslat_durumu())}catch(e){}$("#ayar-run").checked=a.run_aktar!==false;$("#ayar-buyu").checked=a.buyu_aktar!==false;$("#ayar-itemset").checked=a.item_set_aktar!==false;
   $("#ayar-klasor").value=a.lol_klasoru||"";
@@ -752,7 +818,8 @@ async function ayarKaydetSessiz(){
 async function ayarKaydet(){
   const havuz={};document.querySelectorAll("[data-havuz]").forEach(i=>havuz[i.dataset.havuz]=i.value.split(",").map(s=>s.trim()).filter(Boolean));
   await api.ayar_kaydet({varsayilan_rol:seciliRol($("#ayar-rol")),havuz,sadece_havuz:$("#ayar-sadece").checked,
-    item_set_aktar:$("#ayar-itemset").checked,run_aktar:$("#ayar-run").checked,veri_kaynagi:$("#ayar-opgg").checked?"opgg":"kendi",kapatinca_simgeye:$("#ayar-simge").checked,secimde_one_getir:$("#ayar-one").checked,buyu_aktar:$("#ayar-buyu").checked,lol_klasoru:$("#ayar-klasor").value.trim(),
+    item_set_aktar:$("#ayar-itemset").checked,run_aktar:$("#ayar-run").checked,sesler:$("#ayar-ses").checked,
+    hedef_cs_dk:parseFloat(($("#ayar-hedef-cs").value||"0").replace(",","."))||0,hedef_gorus_dk:parseFloat(($("#ayar-hedef-gorus").value||"0").replace(",","."))||0,veri_kaynagi:$("#ayar-opgg").checked?"opgg":"kendi",kapatinca_simgeye:$("#ayar-simge").checked,secimde_one_getir:$("#ayar-one").checked,buyu_aktar:$("#ayar-buyu").checked,lol_klasoru:$("#ayar-klasor").value.trim(),
     github_depo:$("#ayar-depo").value.trim(),github_anahtar:$("#ayar-anahtar").value.trim()});
   try{await api.oto_baslat($("#ayar-oto").checked)}catch(e){}
   perdeKapat();guncellemeBak();

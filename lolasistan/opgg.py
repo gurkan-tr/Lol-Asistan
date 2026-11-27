@@ -103,3 +103,21 @@ def maks_sirasi(sira):
         if y not in biten:
             biten.append(y)
     return " > ".join(biten)
+
+
+def eslesmeler(ham):
+    """Bir şampiyonun sayfasındaki 'counters' listesi: {rakip_id: (maç, bu şampiyonun galibiyeti)}.
+    Liste bazen data altında, bazen data.summary ya da pozisyonların altında gelir."""
+    d = (ham or {}).get("data") or {}
+    adaylar = [d.get("counters"), (d.get("summary") or {}).get("counters")]
+    for p in (d.get("summary") or {}).get("positions") or d.get("positions") or []:
+        if isinstance(p, dict):
+            adaylar.append(p.get("counters"))
+    out = {}
+    for liste in adaylar:
+        for e in liste or []:
+            if isinstance(e, dict) and e.get("champion_id") and e.get("play"):
+                cid = int(e["champion_id"])
+                if cid not in out or e["play"] > out[cid][0]:
+                    out[cid] = (int(e["play"]), int(e.get("win") or 0))
+    return out

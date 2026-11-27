@@ -35,6 +35,18 @@ Kurulum bitince masaüstünde **LoL Asistan** kısayolu oluşur. Bundan sonra sa
   sayfalarına dokunmaz. İstersen **"Rünleri istemciye uygula"** düğmesiyle elle de uygulayabilirsin.
 - Maç sırasında uygulama, seçim ekranında hazırlanan planı (build, nedenleri, B planı, rünler) gösterir. Bu plan maç içinde değişmez; uygulama maç sırasında oyunu analiz etmez. Maç bitince sonuç ekranı açılır.
 
+### Gerçek eşleşme verisiyle şampiyon önerisi
+
+Koridor rakibin belli olunca, OP.GG'den her şampiyonun o rakibe karşı **gerçek kazanma oranı**
+alınır ve öneriler buna göre sıralanır ("Darius karşısında %53,7 kazanıyor (134 maç)"). Afişte
+seçtiğin şampiyonun o eşleşmedeki kazanma oranı yazar. Veri yoksa elle yazılmış counter tablosuna düşülür.
+
+### Sesli uyarılar
+
+Maç bulununca, ban sırası ve seçim sırası sana gelince kısa bir ses çalar ve bildirim gelir.
+Maç bulunduğunda pencere öne getirilmez ki LoL'deki "Kabul et" düğmesinin önünü kapatmasın.
+Ayarlar'dan kapatılabilir.
+
 ### Arka planda çalışma
 
 Pencereyi kapatınca uygulama kapanmaz, saatin yanındaki simgeye küçülür. Maç bulununca
@@ -64,6 +76,12 @@ Program son 100 maçını okur ve şunları gösterir:
 - sana en çok kaybettiren şampiyonlar
 - ban önerilerin
 - maç sonu analizlerinde en sık tekrarladığın hata
+
+Ayrıca:
+- **Gelişim grafikleri:** dakika başı minyon (CS), görüş puanı ve kazanma oranının maçlar boyunca
+  değişimi; son 10 maçı önceki 10 maçla kıyaslar. Ayarlar'dan CS/dk ve görüş/dk hedefi koyabilirsin.
+- **Şampiyon havuzu önerisi:** en iyi gittiğin ana şampiyon + onun zorlandığı rakiplere karşı
+  gerçek eşleşme verisinde iyi giden iki şampiyon.
 
 Şampiyon önerileri de artık bu verileri kullanıyor: ustalık puanı yüksek ama kazanamadığın
 bir şampiyon geri düşer, iyi gittiğin şampiyonlar öne çıkar. Okunan maçlar `kisisel/` klasörüne

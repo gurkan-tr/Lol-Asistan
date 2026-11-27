@@ -47,7 +47,13 @@ def mac_coz(oyun, puuid=None):
                 koridor = p["championId"]
                 break
     st = ben.get("stats", {})
+    sure = oyun.get("gameDuration") or 0
+    if sure > 20000:          # bazı sürümlerde milisaniye gelir
+        sure //= 1000
     return {
+        "v": 2, "sure": sure,
+        "cs": (st.get("totalMinionsKilled") or 0) + (st.get("neutralMinionsKilled") or 0),
+        "gorus": st.get("visionScore") or 0, "altin": st.get("goldEarned") or 0,
         "id": oyun.get("gameId"), "zaman": oyun.get("gameCreation", 0), "kuyruk": oyun.get("queueId"),
         "sampiyon": ben.get("championId"), "rol": rol, "kazandi": bool(st.get("win")),
         "k": st.get("kills", 0), "d": st.get("deaths", 0), "a": st.get("assists", 0),
@@ -127,7 +133,8 @@ class Gecmis:
             idler += [g["gameId"] for g in oyunlar if g.get("mapId", 11) == 11]
             if len(oyunlar) < 20:
                 break
-        yeni = [i for i in idler if i not in self.maclar]
+        # yeni maçlar + eski biçimde kaydedilmiş (CS/görüş alanı olmayan) maçlar
+        yeni = [i for i in idler if i not in self.maclar or self.maclar[i].get("v") != 2]
         for n, gid in enumerate(yeni, 1):
             if ilerleme:
                 ilerleme(n, len(yeni))
@@ -167,6 +174,18 @@ class Gecmis:
             for c in r.get("rakipler", []):
                 s[c].ekle(r)
         return dict(s)
+
+    def gelisim(self, adet=40):
+        """Eskiden yeniye: maç başına CS/dk, görüş/dk ve sonuç (en az 10 dk süren maçlar)."""
+        out = []
+        for r in reversed(self.sirali(adet)):
+            if r.get("v") != 2 or (r.get("sure") or 0) < 600:
+                continue
+            dk = r["sure"] / 60
+            out.append({"zaman": r["zaman"], "kazandi": r["kazandi"], "rol": r.get("rol"),
+                        "sampiyon": r["sampiyon"], "cs_dk": round(r["cs"] / dk, 2),
+                        "gorus_dk": round(r["gorus"] / dk, 2)})
+        return out
 
     def genel(self, adet=60):
         s = Sayac()

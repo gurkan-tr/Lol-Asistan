@@ -152,10 +152,11 @@ class SecimDurumu:
     yasak_ids: set = field(default_factory=set)
     ban_asamasi: bool = False      # benim ban sıram geldi / gelecek
     sicra_d: bool = False          # Sıçra şu an D tuşunda mı
+    sira_bende: str = None         # "ban" / "pick": şu an benim sıram
 
     def anahtar(self):
         return (self.rol, self.benim_id, self.kilitli, tuple(self.takim_ids),
-                tuple(self.rakip_ids), tuple(sorted(self.yasak_ids)), self.ban_asamasi)
+                tuple(self.rakip_ids), tuple(sorted(self.yasak_ids)), self.ban_asamasi, self.sira_bende)
 
 
 def secim_oku(oturum) -> SecimDurumu:
@@ -185,6 +186,9 @@ def secim_oku(oturum) -> SecimDurumu:
                 d.kilitli = True
             if a.get("type") == "ban" and a.get("actorCellId") == hucre and not a.get("completed"):
                 d.ban_asamasi = True
+            if a.get("actorCellId") == hucre and a.get("isInProgress") and not a.get("completed") \
+                    and a.get("type") in ("ban", "pick"):
+                d.sira_bende = a["type"]
     d.yasak_ids.discard(0)
     return d
 

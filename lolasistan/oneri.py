@@ -23,7 +23,7 @@ class Oneri:
 def sampiyon_oner(db, rol, rakip_roller: dict, takim: list, rakipler: list,
                   yasakli: set = (), sahip: set = None, ustalik: dict = None,
                   havuz: list = None, sadece_havuz=False, adet=5, kisisel: dict = None,
-                  kisisel_koridor: dict = None):
+                  kisisel_koridor: dict = None, eslesme: dict = None):
     """
     rakip_roller : {rol: Sampiyon} (tahmini)
     takim        : senin takım arkadaşlarının şampiyonları (sen hariç)
@@ -31,7 +31,9 @@ def sampiyon_oner(db, rol, rakip_roller: dict, takim: list, rakipler: list,
     ustalik      : {alias: ustalık puanı}
     havuz        : config'teki favori şampiyonların (alias)
     kisisel      : {alias: Sayac} — senin bu şampiyonla son maçlardaki sonucun
+    eslesme      : {alias: (kazanma_orani, maç)} — adayın koridor rakibine karşı GERÇEK sonucu (OP.GG)
     """
+    eslesme = eslesme or {}
     kisisel = kisisel or {}
     ustalik = ustalik or {}
     havuz = set(havuz or [])
@@ -56,10 +58,18 @@ def sampiyon_oner(db, rol, rakip_roller: dict, takim: list, rakipler: list,
             o.ekle(4)
         # 2) Koridor rakibi
         if rakip:
-            if db.iyi_mi(c, rakip):
-                o.ekle(30, f"{rakip.ad} karşısında güçlü (counter)")
-            if db.iyi_mi(rakip, c):
-                o.ekle(-30, f"{rakip.ad} tarafından counterlanıyor")
+            veri = eslesme.get(c.alias)
+            if veri:
+                oran, mac = veri
+                guvenilir = (oran * mac + 0.5 * 60) / (mac + 60)       # az maçlıyı ortalamaya çek
+                fark = max(-30.0, min(30.0, (guvenilir - 0.5) * 400))
+                yuzde = f"{oran * 100:.1f}".replace(".", ",")
+                o.ekle(fark, f"{rakip.ad} karşısında %{yuzde} kazanıyor ({mac} maç)" if abs(fark) >= 2 else None)
+            else:
+                if db.iyi_mi(c, rakip):
+                    o.ekle(20, f"{rakip.ad} karşısında güçlü (counter)")
+                if db.iyi_mi(rakip, c):
+                    o.ekle(-20, f"{rakip.ad} tarafından counterlanıyor")
             if rol in ("top", "mid") and c.menzilli and not rakip.menzilli:
                 o.ekle(4, f"Yakın dövüşçü rakibe ({rakip.ad}) karşı menzil avantajı")
             if rakip.tanky and (c.var("hp") or c.var("true")):

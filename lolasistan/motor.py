@@ -26,6 +26,7 @@ VARSAYILAN_AYAR = {
     "github_depo": "gurkan-tr/Lol-Asistan", "github_anahtar": "",
     "kapatinca_simgeye": True, "secimde_one_getir": True,
     "veri_kaynagi": "opgg", "opgg_bolge": "global", "opgg_lig": "emerald_plus", "ugg_kullan": True,
+    "hedef_cs_dk": 7.0, "hedef_gorus_dk": 1.0, "sesler": True,
     "lol_klasoru": "",
 }
 
@@ -61,6 +62,7 @@ class Motor:
         self._son_secim = None     # seçim ekranında hazırlanan son plan (maç sırasında gösterilir)
         self._macsonu = None
         self.olay = None           # arayüz katmanının bildirim fonksiyonu (tur, başlık, mesaj)
+        self.son_ses = {"id": 0, "tur": None}
         self._kilit = threading.Lock()
         self._surum = 0
         self._durum = {"ekran": "baglaniyor", "baslik": "Hazırlanıyor",
@@ -171,6 +173,27 @@ class Motor:
             veri = None
         self._opgg_onbellek[k] = veri
         return veri
+
+    def _eslesme(self, rakip, rol):
+        """Koridor rakibinin sayfasından: her şampiyonun bu rakibe karşı gerçek kazanma oranı.
+        {alias: (oran, maç)}"""
+        if (self.ayar.get("veri_kaynagi", "opgg") != "opgg" or rakip is None or not rakip.id
+                or not (self.dd and self.dd.surum)):
+            return {}
+        k = ("eslesme", rakip.id, rol)
+        if k not in self._opgg_onbellek:
+            try:
+                ham = opgg.ham_getir(rakip.id, rol, self.ayar.get("opgg_bolge", "global"),
+                                     self.ayar.get("opgg_lig", "emerald_plus"))
+                out = {}
+                for cid, (mac, rakip_kazanma) in opgg.eslesmeler(ham).items():
+                    c = self.db.id_ile(cid)
+                    if c and mac:
+                        out[c.alias] = (1 - rakip_kazanma / mac, mac)
+                self._opgg_onbellek[k] = out
+            except Exception:
+                self._opgg_onbellek[k] = {}
+        return self._opgg_onbellek[k]
 
     def _build(self, s, rol, profil, rakip, rakipler):
         return (build_opgg(s, rol, profil, rakip, self.esya, rakipler, self._veri(s, rol, rakip))
@@ -286,11 +309,12 @@ class Motor:
         profil = profil_cikar(rakipler)
         havuz = [s.alias for s in (self.db.bul(x) for x in (a.get("havuz") or {}).get(rol, [])) if s]
         k_sampiyon, k_koridor, k_rakip = self._kisisel()
+        eslesme = self._eslesme(rr.get(rol), rol)
         oneriler = []
         if not kilitli and (not benim or a.get("secince_de_oner", True)):
             oneriler = sampiyon_oner(self.db, rol, rr, takim, rakipler, set(yasakli), sahip, ustalik,
                                      havuz, a.get("sadece_havuz", False), int(a.get("oneri_sayisi", 5)),
-                                     kisisel=k_sampiyon)
+                                     kisisel=k_sampiyon, eslesme=eslesme)
         hedef = benim or (oneriler[0].sampiyon if oneriler else None)
         rakip = rr.get(rol)
         build = self._build(hedef, rol, profil, rakip, rakipler) if hedef else None
@@ -316,6 +340,8 @@ class Motor:
                          for o in oneriler],
             "build": self._build_json(hedef, build, sayfa, buyu),
             "plan": [{"tur": t, "m": m} for t, m in plan],
+            "eslesme": ({"oran": round(eslesme[hedef.alias][0] * 100, 1), "mac": eslesme[hedef.alias][1]}
+                        if hedef and hedef.alias in eslesme else None),
             "takim_mesaji": takim_mesaji(plan),
             "ban_asamasi": ban_asamasi,
             "banlar": [dict(self._s(b.sampiyon), nedenler=b.nedenler[:2]) for b in banlar],
@@ -366,6 +392,30 @@ class Motor:
         """'Rünleri ve büyüleri uygula' düğmesi."""
         r, b = self.runleri_uygula(alias), self.buyuleri_uygula(alias)
         return {"ok": r["ok"] and b["ok"], "mesaj": r["mesaj"] + " " + b["mesaj"]}
+
+    # ---------------- sesli uyarı + bildirim ----------------
+    NOTALAR = {"hazir": [660, 880, 1100], "ban": [520, 390], "pick": [880, 1175], "secim": [523, 659]}
+
+    def _uyar(self, tur, baslik, mesaj):
+        if self.ayar.get("sesler", True):
+            self.son_ses = {"id": self.son_ses["id"] + 1, "tur": tur}
+            if sys.platform == "win32":
+                def cal():
+                    try:
+                        import winsound
+                        for f in self.NOTALAR.get(tur, [700]):
+                            winsound.Beep(f, 150)
+                    except Exception:
+                        pass
+                threading.Thread(target=cal, daemon=True).start()
+        if self.olay:
+            try:
+                self.olay(tur, baslik, mesaj)
+            except Exception:
+                pass
+
+    def ses(self):
+        return self.son_ses
 
     # ---------------- ölüm analizi (maç sonrası) ----------------
     def _olum_analizi(self, lcu, mac, dosya):
@@ -470,6 +520,61 @@ class Motor:
             "zor_rakip": [sj(c, st) for c, st in rakip[:5]],
             "banlar": [dict(self._s(b.sampiyon), nedenler=b.nedenler[:2]) for b in banlar],
             "hatalar": {"toplam": toplam_analiz, "liste": [{"ad": a, "sayi": n} for a, n in hatalar[:4]]},
+            "gelisim": self._gelisim_json(ana_rol),
+            "havuz": self.havuz_durumu(ana_rol),
+        }
+
+    def havuz_durumu(self, rol):
+        """Havuz önerisi arka planda hesaplanır (birkaç OP.GG isteği gerekir)."""
+        h = getattr(self, "_havuz", None)
+        if h and h.get("rol") == rol and h.get("mac_sayisi") == len(self.gecmis.maclar):
+            return h.get("sonuc")
+        if getattr(self, "_havuz_calisiyor", False):
+            return {"durum": "hesaplaniyor"}
+        self._havuz_calisiyor = True
+        threading.Thread(target=self._havuz_hesapla, args=(rol,), daemon=True).start()
+        return {"durum": "hesaplaniyor"}
+
+    def _havuz_hesapla(self, rol):
+        from .havuz import havuz_oner
+        try:
+            k_s, _, _ = self._kisisel()
+            cevrimici = self.ayar.get("veri_kaynagi", "opgg") == "opgg" and self.dd and self.dd.surum
+            def getir(c):
+                if not cevrimici or not c.id:
+                    return None
+                return opgg.eslesmeler(opgg.ham_getir(c.id, rol, self.ayar.get("opgg_bolge", "global"),
+                                                      self.ayar.get("opgg_lig", "emerald_plus")))
+            sonuc = havuz_oner(self.db, rol, k_s, getir, (self.ayar.get("havuz") or {}).get(rol))
+            if sonuc:
+                s_ = lambda a: self._s(self.db.sampiyonlar.get(a))
+                sonuc = {"durum": "hazir", "kaynak": sonuc["kaynak"],
+                         "ana": dict(s_(sonuc["ana"]["alias"]), neden=sonuc["ana"]["neden"]),
+                         "yedekler": [dict(s_(y["alias"]), neden=y["neden"]) for y in sonuc["yedekler"]],
+                         "zor": [dict(s_(z["alias"]), oran=z["oran"], mac=z["mac"]) for z in sonuc["zor"]]}
+            else:
+                sonuc = {"durum": "yok"}
+        except Exception as e:
+            sonuc = {"durum": "hata", "mesaj": str(e)}
+        self._havuz = {"rol": rol, "sonuc": sonuc, "mac_sayisi": len(self.gecmis.maclar)}
+        self._havuz_calisiyor = False
+
+    def _gelisim_json(self, ana_rol):
+        g = self.gecmis.gelisim(40)
+        if len(g) < 4:
+            return None
+        def ort(liste, alan):
+            return round(sum(x[alan] for x in liste) / len(liste), 2) if liste else None
+        son, onceki = g[-10:], g[-20:-10]
+        return {
+            "maclar": [dict(x, ad=(self.db.id_ile(x["sampiyon"]).ad if self.db.id_ile(x["sampiyon"]) else "?")) for x in g],
+            "cs_son": ort(son, "cs_dk"), "cs_onceki": ort(onceki, "cs_dk"),
+            "gorus_son": ort(son, "gorus_dk"), "gorus_onceki": ort(onceki, "gorus_dk"),
+            "oran_son": round(sum(x["kazandi"] for x in son) * 100 / len(son)),
+            "oran_onceki": round(sum(x["kazandi"] for x in onceki) * 100 / len(onceki)) if onceki else None,
+            "hedef_cs": float(self.ayar.get("hedef_cs_dk") or 0) or None,
+            "hedef_gorus": float(self.ayar.get("hedef_gorus_dk") or 0) or None,
+            "destek": ana_rol == "support",
         }
 
     def gecmisi_yenile(self):
@@ -546,6 +651,7 @@ class Motor:
             self._yayinla({"ekran": "hata", "baslik": "Veriler yüklenemedi", "mesaj": str(e)})
             return
         lcu, son, aktarilan, analiz_edilen = None, None, set(), None
+        son_sira = None
         sahip, ustalik, son_build, son_rol = None, {}, None, None
         ekran = None
 
@@ -568,6 +674,12 @@ class Motor:
                     self.gecmisi_yenile()
 
                 faz = lcu.faz()
+                if faz == "ReadyCheck":
+                    if ekran != "hazir":
+                        self._uyar("hazir", "Maç bulundu!", "Kabul etmeyi unutma.")
+                        ekran = "hazir"
+                    time.sleep(1)
+                    continue
                 # Maç sırasında hiçbir oyun verisi okunmaz, analiz yapılmaz.
                 # Sadece seçim ekranında hazırlanmış (değişmeyen) plan gösterilir.
                 if faz in ("GameStart", "InProgress", "Reconnect"):
@@ -622,14 +734,15 @@ class Motor:
                     ustalik = {self.db.id_ile(i).alias: p for i, p in lcu.ustaliklar().items() if self.db.id_ile(i)}
                     aktarilan = set()
                     self.elle = False   # gerçek seçim başlayınca demo ekranını kapat
-                    if self.olay:
-                        try:
-                            self.olay("secim", "Maç bulundu!", "Karşı takım analizi ve ban önerin hazır.")
-                        except Exception:
-                            pass
+                    self._uyar("secim", "Seçim ekranı açıldı", "Karşı takım analizi ve ban önerin hazır.")
+                    son_sira = None
 
                 d = secim_oku(oturum)
                 self._sicra_d = d.sicra_d
+                if d.sira_bende and d.sira_bende != son_sira:
+                    self._uyar(d.sira_bende, "Ban sırası sende" if d.sira_bende == "ban" else "Seçim sırası sende",
+                               "LoL Asistan önerilerin hazır.")
+                son_sira = d.sira_bende
                 rol = d.rol or rol_coz(self.ayar.get("varsayilan_rol")) or "mid"
                 anahtar = d.anahtar() + (rol,)
                 if anahtar != son:
