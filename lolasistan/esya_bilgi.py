@@ -90,6 +90,14 @@ ACIKLAMA = {
     "Executioner's Calling": "Ucuz anti-heal parçası; iyileşen rakibe karşı erken alınır.",
     "Oblivion Orb": "Ucuz büyü anti-heal parçası; erken alınır.",
     "Bramble Vest": "Ucuz tank anti-heal parçası; sana vuranların iyileşmesini azaltır.",
+    "Rod of Ages": "Zamanla can, mana ve büyü gücü kazandırır; erken alınırsa geç oyunda çok güçlü.",
+    "Archangel's Staff": "Mana yığdıkça büyü gücü verir, dolunca Seraph's Embrace'e dönüşüp kalkan kazandırır.",
+    "Seraph's Embrace": "Archangel's Staff'ın dolmuş hali: büyük mana ve büyü gücü, canın azalınca kalkan.",
+    "Tear of the Goddess": "Yetenek kullandıkça kalıcı mana kazandırır; Archangel/Manamune için erken alınır.",
+    "Winter's Approach": "Mana yığdıkça can kazandırır, dolunca Fimbulwinter'a dönüşür; tank-büyücüler için.",
+    "Fimbulwinter": "Winter's Approach'un dolmuş hali: rakibi yavaşlatınca kalkan verir.",
+    "Cosmic Drive": "Yetenek hızı ve hareket hızı; hasar verdikçe hızlanırsın.",
+    "Hextech Rocketbelt": "Atılma aktifi ve ek hasar; büyücüye savaşa girme imkânı verir.",
     # --- tank ---
     "Sunfire Aegis": "Etrafına sürekli yanma hasarı; dalga temizleme ve dövüşte hasar.",
     "Heartsteel": "Zamanla kalıcı can kazandırır; geç oyunda çok kalın olursun.",
@@ -128,7 +136,13 @@ ACIKLAMA = {
 }
 
 # Bazı şampiyonlarda çekirdek eşyalar genel şablondan farklı.
+# (Sadece sitelerden veri alınamadığında kullanılır; normalde çekirdek istatistikten gelir.)
 CEKIRDEK_OZEL = {
+    "Ryze":       [["Rod of Ages"], ["Archangel's Staff"], ["Rabadon's Deathcap", "Zhonya's Hourglass"]],
+    "Anivia":     [["Archangel's Staff"], ["Rod of Ages", "Zhonya's Hourglass"], ["Rabadon's Deathcap"]],
+    "Kassadin":   [["Rod of Ages"], ["Archangel's Staff", "Malignance"], ["Rabadon's Deathcap"]],
+    "Cassiopeia": [["Rod of Ages"], ["Archangel's Staff", "Liandry's Torment"], ["Rabadon's Deathcap"]],
+    "Ezreal":     [["Essence Reaver", "Trinity Force"], ["Manamune"], ["Serylda's Grudge", "Black Cleaver"]],
     "Irelia":  [["Blade of The Ruined King"], ["Sundered Sky", "Trinity Force"], ["Sterak's Gage", "Black Cleaver"]],
     "Viego":   [["Blade of The Ruined King"], ["Sundered Sky", "Trinity Force"], ["Sterak's Gage", "Death's Dance"]],
     "Kled":    [["Blade of The Ruined King"], ["Black Cleaver"], ["Sterak's Gage"]],

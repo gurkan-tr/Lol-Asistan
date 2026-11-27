@@ -434,6 +434,7 @@ footer{font-size:11px;color:var(--silik);padding:6px 24px}
     <div class="havuz"><span>CS/dk</span><input type="text" id="ayar-hedef-cs" placeholder="7.0"></div>
     <div class="havuz"><span>Görüş/dk</span><input type="text" id="ayar-hedef-gorus" placeholder="1.0"></div>
     <h2 class="ara">Seçim ekranında</h2>
+    <label class="onay"><input type="checkbox" id="ayar-rakibe"> İstatistik buildine rakibe göre eşya ekle (anti-heal, delme, Merkür Botları…)</label>
     <label class="onay"><input type="checkbox" id="ayar-opgg"> Build, rün, büyü ve yetenek sırasını OP.GG istatistiklerinden al</label>
     <label class="onay"><input type="checkbox" id="ayar-itemset"> Şampiyonu kilitleyince buildi mağazaya eşya seti olarak ekle</label>
     <label class="onay"><input type="checkbox" id="ayar-buyu"> Şampiyonu kilitleyince sihirdar büyülerini otomatik ayarla</label>
@@ -609,7 +610,7 @@ function buildHtml(b,oyunda){
     b.b_plani.map(k=>`<div class="kosul"><span class="k">${esc(k.kosul)}</span>${esya(k,36)}<span class="e">${esc(k.ad)}${k.aciklama?`<span class="ac">${esc(k.aciklama)}</span>`:""}</span></div>`).join("")}</div>`:"";
   const ipucu=b.notlar.length?`<ul class="ipuclari">${b.notlar.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:"";
   return `<section class="build"><div class="build-ust"><h3>${esc(b.hedef.ad)} buildi</h3>${kaynakEtiket(b.kaynak)}<span>${esc(b.arketip)} · turuncu çerçeveliler bu maça özel</span></div>
-    <div class="rota">${bas}<div class="ayrac"></div>${bot}${sira}</div>${yetenekHtml(b.yetenek)}${nedenHtml(b)}${runHtml(b.runler,b.hedef.alias,b.buyu,oyunda)}${plan}${ipucu}</section>`;
+    ${b.uyari?`<div class="bilgi-serit uyari" style="margin-bottom:16px">${esc(b.uyari)}</div>`:""}<div class="rota">${bas}<div class="ayrac"></div>${bot}${sira}</div>${yetenekHtml(b.yetenek)}${nedenHtml(b)}${runHtml(b.runler,b.hedef.alias,b.buyu,oyunda)}${plan}${ipucu}</section>`;
 }
 
 function oyunEkrani(d){
@@ -804,7 +805,7 @@ async function ayarAc(){
   rolSecici($("#ayar-rol"),a.varsayilan_rol||"mid");
   $("#havuz-alanlari").innerHTML=ROLLER.map(([k,ad])=>`<div class="havuz">
      <span>${ad}</span><input type="text" data-havuz="${k}" list="adlar" value="${esc((a.havuz&&a.havuz[k]||[]).join(", "))}"></div>`).join("");
-  $("#ayar-sadece").checked=!!a.sadece_havuz;$("#ayar-ses").checked=a.sesler!==false;
+  $("#ayar-sadece").checked=!!a.sadece_havuz;$("#ayar-rakibe").checked=a.rakibe_gore_esya!==false;$("#ayar-ses").checked=a.sesler!==false;
   $("#ayar-hedef-cs").value=a.hedef_cs_dk??7;$("#ayar-hedef-gorus").value=a.hedef_gorus_dk??1;$("#ayar-opgg").checked=(a.veri_kaynagi||"opgg")==="opgg";
   $("#ayar-simge").checked=a.kapatinca_simgeye!==false;$("#ayar-one").checked=a.secimde_one_getir!==false;
   try{$("#ayar-oto").checked=!!(await api.oto_baslat_durumu())}catch(e){}$("#ayar-run").checked=a.run_aktar!==false;$("#ayar-buyu").checked=a.buyu_aktar!==false;$("#ayar-itemset").checked=a.item_set_aktar!==false;
@@ -818,7 +819,7 @@ async function ayarKaydetSessiz(){
 async function ayarKaydet(){
   const havuz={};document.querySelectorAll("[data-havuz]").forEach(i=>havuz[i.dataset.havuz]=i.value.split(",").map(s=>s.trim()).filter(Boolean));
   await api.ayar_kaydet({varsayilan_rol:seciliRol($("#ayar-rol")),havuz,sadece_havuz:$("#ayar-sadece").checked,
-    item_set_aktar:$("#ayar-itemset").checked,run_aktar:$("#ayar-run").checked,sesler:$("#ayar-ses").checked,
+    item_set_aktar:$("#ayar-itemset").checked,run_aktar:$("#ayar-run").checked,rakibe_gore_esya:$("#ayar-rakibe").checked,sesler:$("#ayar-ses").checked,
     hedef_cs_dk:parseFloat(($("#ayar-hedef-cs").value||"0").replace(",","."))||0,hedef_gorus_dk:parseFloat(($("#ayar-hedef-gorus").value||"0").replace(",","."))||0,veri_kaynagi:$("#ayar-opgg").checked?"opgg":"kendi",kapatinca_simgeye:$("#ayar-simge").checked,secimde_one_getir:$("#ayar-one").checked,buyu_aktar:$("#ayar-buyu").checked,lol_klasoru:$("#ayar-klasor").value.trim(),
     github_depo:$("#ayar-depo").value.trim(),github_anahtar:$("#ayar-anahtar").value.trim()});
   try{await api.oto_baslat($("#ayar-oto").checked)}catch(e){}

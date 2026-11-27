@@ -79,7 +79,27 @@ class EsyaDB:
             return
         yerel = dd.esyalar(dd.dil) if dd.dil != "en_US" else en
         self.cevrimdisi = False
-        for iid, it in en["data"].items():
+        veri = en["data"]
+        yerel_ad = lambda iid, varsayilan: ((yerel or {}).get("data", {}).get(iid) or {}).get("name", varsayilan)
+        # 1) id -> bilgi: TÜM eşyalar (sitelerin istatistiklerinde dönüşmüş eşyalar da geçer:
+        #    Seraph's Embrace, Muramana... bunlar mağazada satılmaz ama tanınmaları gerekir)
+        for iid, it in veri.items():
+            st = it.get("stats", {})
+            satin_id = iid
+            if not it.get("gold", {}).get("purchasable", True):
+                kok = it.get("specialRecipe") or (it.get("from") or [None])[0]
+                if kok and str(kok) in veri and veri[str(kok)].get("gold", {}).get("purchasable", False):
+                    satin_id = str(kok)
+            ad = yerel_ad(iid, it["name"])
+            if satin_id != iid:
+                ad = f"{yerel_ad(satin_id, veri[satin_id]['name'])} (→ {ad})"
+            self.bilgi[str(iid)] = {
+                "en": it["name"], "en_satin": veri[satin_id]["name"], "ad": ad, "satin_id": satin_id,
+                "zirh": st.get("FlatArmorMod", 0) > 0, "mr": st.get("FlatSpellBlockMod", 0) > 0,
+                "tamam": it.get("gold", {}).get("total", 0) >= 2000 or not it.get("into"),
+            }
+        # 2) isim -> (id, ad): sadece Sihirdar Vadisi mağazasında satılanlar
+        for iid, it in veri.items():
             if not it.get("maps", {}).get("11"):
                 continue
             if not it.get("gold", {}).get("purchasable", False):
@@ -87,15 +107,7 @@ class EsyaDB:
             if it.get("requiredChampion") or it.get("requiredAlly"):
                 continue
             anahtar = norm(it["name"])
-            ad = it["name"]
-            if yerel and iid in yerel.get("data", {}):
-                ad = yerel["data"][iid].get("name", ad)
-            st = it.get("stats", {})
-            self.bilgi[str(iid)] = {
-                "en": it["name"], "ad": ad,
-                "zirh": st.get("FlatArmorMod", 0) > 0, "mr": st.get("FlatSpellBlockMod", 0) > 0,
-                "tamam": it.get("gold", {}).get("total", 0) >= 2000 or not it.get("into"),
-            }
+            ad = yerel_ad(iid, it["name"])
             if anahtar not in self.isimden or int(iid) < int(self.isimden[anahtar][0]):
                 self.isimden[anahtar] = (iid, ad)
 

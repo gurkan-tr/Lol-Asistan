@@ -593,3 +593,47 @@ class SurumDokuzTest(unittest.TestCase):
         oturum = {"localPlayerCellId": 1, "myTeam": [{"cellId": 1, "championId": 0}], "theirTeam": [],
                   "actions": [[{"type": "ban", "actorCellId": 1, "completed": False, "isInProgress": True}]]}
         self.assertEqual(secim_oku(oturum).sira_bende, "ban")
+
+
+class DonusenEsyaTest(unittest.TestCase):
+    class DD:
+        dil = "en_US"
+
+        def esyalar(self, dil):
+            satin = {"purchasable": True, "total": 3000}
+            return {"data": {
+                "3003": {"name": "Archangel's Staff", "maps": {"11": True}, "gold": satin, "into": ["3040"]},
+                "3040": {"name": "Seraph's Embrace", "maps": {"11": True}, "gold": {"purchasable": False, "total": 3000},
+                         "specialRecipe": 3003},
+                "3004": {"name": "Manamune", "maps": {"11": True}, "gold": satin},
+                "3042": {"name": "Muramana", "maps": {"11": True}, "gold": {"purchasable": False}, "from": ["3004"]},
+                "6657": {"name": "Rod of Ages", "maps": {"11": True}, "gold": satin},
+                "3089": {"name": "Rabadon's Deathcap", "maps": {"11": True}, "gold": satin},
+                "3111": {"name": "Mercury's Treads", "maps": {"11": True}, "gold": satin},
+                "1056": {"name": "Doran's Ring", "maps": {"11": True}, "gold": satin},
+            }}
+
+    def test_donusen_esya_magaza_haline_cevrilir(self):
+        e = EsyaDB(self.DD())
+        self.assertEqual(e.id_bilgi(3040)["satin_id"], "3003")
+        self.assertEqual(e.id_bilgi(3040)["ad"], "Archangel's Staff (→ Seraph's Embrace)")
+        self.assertEqual(e.id_bilgi(3042)["satin_id"], "3004")          # 'from' alanından
+        self.assertIsNone(e.bul("Seraph's Embrace"))                    # mağazada satılmaz
+
+    def test_ryze_istatistik_build_eksiksiz(self):
+        from lolasistan import kaynaklar
+        from lolasistan.build import build_opgg
+        db = SampiyonDB()
+        veri = kaynaklar.birlestir({"kaynak": "OP.GG", "yama": "16.23", "cekirdek": [{"ids": [6657, 3040, 3089], "mac": 900, "kazanma": 470}],
+                                    "bot": [{"ids": [3111], "mac": 900, "kazanma": 470}], "baslangic": [{"ids": [1056], "mac": 900, "kazanma": 450}],
+                                    "son": [], "run": [], "buyu": [], "yetenek": []}, None, None)
+        b = build_opgg(db.bul("Ryze"), "mid", profil_cikar([]), None, EsyaDB(self.DD()), [], veri)
+        self.assertEqual([(i, a) for i, a, _ in b.esyalar],
+                         [("6657", "Rod of Ages"), ("3003", "Archangel's Staff (→ Seraph's Embrace)"), ("3089", "Rabadon's Deathcap")])
+        self.assertIn("Seraph", b.bilgi["Archangel's Staff (→ Seraph's Embrace)"]["aciklama"])
+
+    def test_yedek_sablon_ryze(self):
+        from lolasistan.build import build_olustur
+        db = SampiyonDB()
+        b = build_olustur(db.bul("Ryze"), "mid", profil_cikar([]), None, EsyaDB(None), [])
+        self.assertEqual([a for _, a, _ in b.esyalar][:2], ["Rod of Ages", "Archangel's Staff"])

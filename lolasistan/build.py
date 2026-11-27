@@ -415,7 +415,7 @@ def b_plani(a, b, profil, rakipler, esya_db):
 # ------------------------------------------------------------------
 # OP.GG verisiyle build: çekirdek istatistikten, ekler rakibe göre
 # ------------------------------------------------------------------
-def build_opgg(sampiyon, rol, profil, rakip, esya_db, rakipler, veri):
+def build_opgg(sampiyon, rol, profil, rakip, esya_db, rakipler, veri, rakibe_gore=True):
     """veri: kaynaklar.birlestir() çıktısı (OP.GG + U.GG + rakibe özel).
     Eşyalar bu yamada çözülemezse None döner (programın kendi builde düşülür)."""
     if not veri or esya_db.cevrimdisi or not veri.get("cekirdek"):
@@ -425,11 +425,14 @@ def build_opgg(sampiyon, rol, profil, rakip, esya_db, rakipler, veri):
     havuz = veri.get("havuz") or set()
 
     def id_coz(iid):
+        """Sitelerdeki eşya id'si -> (mağazada alınacak id, görünen ad). Dönüşen eşyalar
+        (Seraph's Embrace gibi) mağazadaki asıl hallerine (Archangel's Staff) çevrilir."""
         bilgi = esya_db.id_bilgi(iid)
         if not bilgi:
             return None
-        b.bilgi.setdefault(bilgi["ad"], {"aciklama": ACIKLAMA.get(bilgi["en"], ""), "alternatif": []})
-        return (str(iid), bilgi["ad"])
+        aciklama = ACIKLAMA.get(bilgi.get("en_satin", "")) or ACIKLAMA.get(bilgi["en"], "")
+        b.bilgi.setdefault(bilgi["ad"], {"aciklama": aciklama, "alternatif": []})
+        return (str(bilgi.get("satin_id", iid)), bilgi["ad"])
 
     def isim_coz(alternatifler):
         """Rakibe özel eşya: şampiyonun verisinde (gerçek maçlarda) görülen alternatif öncelikli."""
@@ -452,7 +455,7 @@ def build_opgg(sampiyon, rol, profil, rakip, esya_db, rakipler, veri):
             if r:
                 b.baslangic.append((r[0], r[1], n))
 
-    kurallar, bot_degisim = durum_kurallari(a, profil, rakip)
+    kurallar, bot_degisim = durum_kurallari(a, profil, rakip) if rakibe_gore else ([], None)
     if bot_degisim:
         r = isim_coz(bot_degisim[0])
         if r:

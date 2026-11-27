@@ -26,7 +26,7 @@ VARSAYILAN_AYAR = {
     "github_depo": "gurkan-tr/Lol-Asistan", "github_anahtar": "",
     "kapatinca_simgeye": True, "secimde_one_getir": True,
     "veri_kaynagi": "opgg", "opgg_bolge": "global", "opgg_lig": "emerald_plus", "ugg_kullan": True,
-    "hedef_cs_dk": 7.0, "hedef_gorus_dk": 1.0, "sesler": True,
+    "hedef_cs_dk": 7.0, "hedef_gorus_dk": 1.0, "sesler": True, "rakibe_gore_esya": True,
     "lol_klasoru": "",
 }
 
@@ -196,8 +196,15 @@ class Motor:
         return self._opgg_onbellek[k]
 
     def _build(self, s, rol, profil, rakip, rakipler):
-        return (build_opgg(s, rol, profil, rakip, self.esya, rakipler, self._veri(s, rol, rakip))
-                or build_olustur(s, rol, profil, rakip, self.esya, rakipler))
+        b = build_opgg(s, rol, profil, rakip, self.esya, rakipler, self._veri(s, rol, rakip),
+                       self.ayar.get("rakibe_gore_esya", True))
+        if b:
+            return b
+        b = build_olustur(s, rol, profil, rakip, self.esya, rakipler)
+        if self.ayar.get("veri_kaynagi", "opgg") == "opgg":
+            b.uyari = ("Sitelerden bu şampiyonun verisi alınamadı; bu build programın tahmini. "
+                       "İnternet bağlantını kontrol et ya da biraz sonra tekrar dene.")
+        return b
 
     def _sayfa(self, s, rol, profil, rakip):
         try:
@@ -296,6 +303,7 @@ class Motor:
             "kaynak": build.kaynak,
             "kaynaklar": build.kaynaklar,
             "cekirdek_etiket": build.cekirdek_etiket,
+            "uyari": getattr(build, "uyari", ""),
             "yetenek": ({"sira": build.yetenek["sira"], "maks": opgg.maks_sirasi(build.yetenek["sira"]),
                          "oran": build.yetenek.get("oran"), "etiket": build.yetenek.get("etiket", "")}
                         if build.yetenek else None),
